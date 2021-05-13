@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="http://fonts.googleapis.com/css?family=Corben:bold" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=Nobile" rel="stylesheet" type="text/css">
+<title>Wordclock by Uniquelymade</title>
+<style>
+/* CSS RESET ---------------------------------------------- */
+        
+*, div, span, header {
+    margin: 0px;
+    padding: 0px;
+    border: 0px solid #ff00ff;
+}
+/* apply a natural box layout model to all elements */
+        
+*, *:before, *:after {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+/* clearfix */
+        
+.clearfix:after {
+    content: ".";
+    display: block;
+    clear: both;
+    visibility: hidden;
+    line-height: 0;
+    height: 0;
+}
+.clearfix {
+    display: inline-block;
+}
+html[xmlns] .clearfix {
+    display: block;
+}
+* html .clearfix {
+    height: 1%;
+}
+/* CSS RESET ---------------------------------------------- */
+        
+html {
+    font-size: 62.5%;
+// font-family: 'Corben', Georgia, Times, serif;
+    font-family: 'Georgia';
+}
+h1, h2, h3, h4, a {
+    text-shadow: 5px 5px 5px #ccc;
+}
+summary {
+    font-size: 1.5rem;
+}
+h1 {
+    font-size: 2.9rem;
+}
+h2 {
+    font-size: 2rem;
+}
+h3, th {
+    font-size: 1.5rem;
+}
+h4 {
+    font-size: 1.7rem;
+}
+h5 {
+    font-size: 1.2rem;
+}
+p, div {
+    font-family: 'Nobile', Helvetica, Arial, sans-serif,;
+    font-size: 1.5rem;
+// border: 1px solid red;
+}
+.reset {
+    max-width: 100px;
+}
+input[type=submit] {
+    padding: 5px 15px;
+    background: #ccc;
+    border: 0 none;
+    cursor: pointer;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+.container {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    max-width: 800px;
+}
+.tablecontainer {
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    align-items: center;
+    justify-content: space-around;
+    max-width: 800px;
+}
+.evencontainer {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: space-evenly;
+    max-width: 800px;
+}
+.spacediv {
+    height: 5rem;
+    width: 10px;
+}
+.centerdiv {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: space-evenly;
+    max-width: 800px;
+}
+input[type=color] {
+    padding: 1px;
+    border: 2px solid #ccc;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+select {
+    padding: 5px;
+    border: 2px solid #ccc;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+input[type=time] {
+    padding: 5px;
+    border: 2px solid #ccc;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+input[type=password] {
+    padding: 5px;
+    border: 2px solid #ccc;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+input[type=text] {
+    padding: 5px;
+    border: 2px solid #ccc;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+input[type=color]:focus {
+    border-color: #333;
+}
+summary:focus {
+    outline: none;
+}
+table {
+    table-layout: auto;
+}
+.tooltip {
+    position: relative;
+}
+.tooltip span[role=tooltip] {
+    display: none;
+}
+.percentage {
+    width: 50px;
+    align-content: center;
+    align-items: center;
+}
+.tooltip:hover span[role=tooltip] {
+    display: block;
+    position: absolute;
+    bottom: 2em;
+    left: -6em;
+    width: 15em;
+    padding: 0.5em;
+    z-index: 100;
+    color: #000;
+    background-color: #ffebe6;
+    border: solid 1px #c32e04;
+    border-radius: 0.2em;
+}
+.slidecontainer {
+    width: 300px;
+}
+.slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 15px;
+    background: #d3d3d3;
+    padding: 5px;
+    border: 2px solid #ccc;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+.slider:hover {
+    opacity: 1;
+}
+ .slider::-webkit-slider-thumb {
+ -webkit-appearance: none;
+ appearance: none;
+ width: 25px;
+ height: 25px;
+ background: #4CAF50;
+ cursor: pointer;
+}
+ .slider::-moz-range-thumb {
+ width: 25px;
+ height: 25px;
+ background: #4CAF50;
+ cursor: pointer;
+}
+table {
+    border-collapse: separate;
+    border-spacing: 20px 0;
+}
+td {
+    padding: 10px 0;
+}
+.spacer1 {
+    height: 5rem;
+    width: 100%;
+}
+.spacer2 {
+    height: 3rem;
+    width: 100%;
+}
+.spacer3 {
+    height: 1rem;
+    width: 100%;
+}
+.spacer4 {
+    height: 5rem;
+    width: 100%;
+}
+.spacer5 {
+    height: 10rem;
+    width: 100%;
+}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+</head>
+
+<body>
+<center>
+<div class="spacer1"></div>
+<h1>Wordclock</h1>
+<div class="spacer3"></div>
+<h2>by <a href="https://uniquelymade.de/en/homepage-en/" target="_blank">Uniquelymade</a></h2>
+<div class="spacer4"></div>
+<h2>Generelle Einstellungen</h2>
+<div class="spacer3"></div>
+<form>
+  <div class="container">
+    <div>Farbe</div>
+    <div class="spacediv"> </div>
+    <div>
+      <input type="color" id="color" name="Farbe" value="#6c00ff">
+    </div>
+  </div>
+  <div class="spacer3"></div>
+  <div class="container">
+    <div class="slidecontainer">
+      <input type="range" min="0" max="100" name="Helligkeittag" value="20" class="slider" id="ledbrightness">
+    </div>
+    <div class="spacediv"> </div>
+    <div class="centerdiv"> <span id="demo" class="percentage"></span>%</div>
+  </div>
+  <div class="spacer3"></div>
+  <div class="container">
+    <div>Zeitzone</div>
+    <div class="spacediv"> </div>
+    <div>
+      <select name="Zeitzone">
+        <option value="-12">UTC-12</option>
+        <option value="-11">UTC-11</option>
+        <option value="-10">UTC-10</option>
+        <option value="-9">UTC-9</option>
+        <option value="-8">UTC-8</option>
+        <option value="-7">UTC-7</option>
+        <option value="-6">UTC-6</option>
+        <option value="-5">UTC-5</option>
+        <option value="-4">UTC-4</option>
+        <option value="-3">UTC-3</option>
+        <option value="-2">UTC-2</option>
+        <option value="-1">UTC-1</option>
+        <option value="0">UTC0</option>
+        <option value="1" selected>UTC1</option>
+        <option value="2">UTC2</option>
+        <option value="3">UTC3</option>
+        <option value="4">UTC4</option>
+        <option value="5">UTC5</option>
+        <option value="6">UTC6</option>
+        <option value="7">UTC7</option>
+        <option value="8">UTC8</option>
+        <option value="9">UTC9</option>
+        <option value="10">UTC10</option>
+        <option value="11">UTC11</option>
+      </select>
+    </div>
+    <div class="spacediv"> </div>
+    <div>Auto. Sommerzeit?</div>
+    <div class="spacediv"> </div>
+    <div>
+      <input type="hidden" name="nachtruhe" value="0">
+      <input type="checkbox" name="nachtruhe" value="Summertime" checked>
+    </div>
+  </div>
+  <div class="spacer3"></div>
+  <h2>Nachtruhe</h2>
+  <div class="spacer3"></div>
+  <div class="container">
+    <div>Aktivieren</div>
+    <div class="spacediv"> </div>
+    <div>
+      <input type="hidden" name="nachtruhe" value="0">
+      <input type="checkbox" name="nachtruhe" value="nighttime">
+    </div>
+  </div>
+  <div class="spacer3"></div>
+  <div class="container">
+    <div>Von:</div>
+    <div class="spacediv"> </div>
+    <div>
+      <input size="5" type="time" name="Ruheab" value="22:00" />
+    </div>
+    <div class="spacediv"> </div>
+    <div>Bis:</div>
+    <div class="spacediv"> </div>
+    <div>
+      <input size="5" type="time" name="Ruhebis" value="07:00" />
+    </div>
+  </div>
+  <div class="spacer3"></div>
+  <div class="container">
+    <div class="slidecontainer">
+      <input type="range" min="0" max="100" name="Helligkeitnachts" value="34" class="slider" id="ledbrightnessnight">
+    </div>
+    <div class="spacediv"> </div>
+    <div class="centerdiv"> <span id="lednight" class="percentage"></span>%</div>
+  </div>
+  <div class="spacer3"></div>
+  <input type="submit" value="Uhr stellen" />
+  <div class="spacer2"></div>
+  <details>
+    <summary>Netzwerkeinstellungen</summary>
+    <div class="container"> Mit keinem Netzwerk verbunden </div>
+    <div class="container">
+      <div>Verbunden mit: </div>
+      <div class="spacediv"> </div>
+      <div>ID of Wifi Network </div>
+      <div class="spacediv"> </div>
+      <div>With IP</div>
+      <div class="spacediv"> </div>
+      <div> 192.168.0.1</div>
+    </div>
+    <div class="spacer3"></div>
+    <div class="container">
+      <div>Netzwerk </div>
+      <div class="spacediv"> </div>
+      <div>
+        <input type="text" name="SSID" value="o2-WLAN97" />
+      </div>
+    </div>
+    <div class="container">
+      <div>Password </div>
+      <div class="spacediv"> </div>
+      <div>
+        <input type="password" name="Passwort" value="688W3X3VP6R634C6" />
+      </div>
+    </div>
+    <div class="container">
+      <div>RESET</div>
+      <div class="spacediv"> </div>
+      <div>
+        <input type="text" class="reset" name="RESET" />
+      </div>
+    </div>
+    <details>
+      <summary>Verfügbare Wlan Netzwerke</summary>
+      <div class="evencontainer">
+        <div class="tablecontainer">
+          <div>
+            <h3>Nr.</h3>
+          </div>
+        </div>
+        <div class="tablecontainer">
+          <div>
+            <h3>Name</h3>
+          </div>
+        </div>
+        <div class="tablecontainer">
+          <div>
+            <h3>Signal</h3>
+          </div>
+        </div>
+      </div>
+      <div class="evencontainer">
+        <div class="tablecontainer">
+          <div>
+            <h5>1</h5>
+          </div>
+          <div>
+            <h5>1</h5>
+          </div>
+          <div>
+            <h5>10</h5>
+          </div>
+          <div>
+            <h5>1</h5>
+          </div>
+          <div>
+            <h5>1</h5>
+          </div>
+        </div>
+        <div class="tablecontainer">
+          <div>
+            <h5>Name of network</h5>
+          </div>
+          <div>
+            <h5>asdasd</h5>
+          </div>
+          <div>
+            <h5>asdfasdfassdfasdfasdfasdf</h5>
+          </div>
+        </div>
+        <div class="tablecontainer">
+          <div>
+            <h5>50%</h5>
+          </div>
+          <div>
+            <h5>50%</h5>
+          </div>
+          <div>
+            <h5>1%</h5>
+          </div>
+          <div>
+            <h5>50%</h5>
+          </div>
+          <div>
+            <h5>100%</h5>
+          </div>
+        </div>
+      </div>
+    </details>
+  </details>
+  </center>
+</form>
+<script>
+    var slider1 = document.getElementById("ledbrightness");
+    var output1 = document.getElementById("demo");
+    output1.innerHTML = slider1.value;
+    slider1.oninput = function() {
+        output1.innerHTML = this.value;
+    }
+</script> 
+<script>
+    var slider2 = document.getElementById("ledbrightnessnight");
+    var output2 = document.getElementById("lednight");
+    output2.innerHTML = slider2.value;
+    slider2.oninput = function() {
+        output2.innerHTML = this.value;
+    }
+</script>
+</body>
+</html>
