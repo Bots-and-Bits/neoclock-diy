@@ -171,8 +171,7 @@ void handleWiFiConnect(AsyncWebServerRequest *request, uint8_t *data, size_t len
     ssid.toCharArray(config.network.ssid, sizeof(config.network.ssid));
     password.toCharArray(config.network.password, sizeof(config.network.password));
     
-    playAnimation(ANIM_SAVING);
-    saveConfig();
+    saveConfigImmediate();  // WiFi credentials are critical - save immediately
     
     // Attempt connection
     playAnimation(ANIM_WIFI_CONNECTING);
@@ -265,9 +264,12 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       // Store if you have this field - currently not used
     }
     
-    playAnimation(ANIM_SAVING);
-    saveConfig();
-    playAnimation(ANIM_SUCCESS);
+    // Save immediately if timezone changed (requires restart), otherwise defer save
+    if (needsRestart) {
+      saveConfigImmediate();
+    } else {
+      markConfigDirty();
+    }
     
     String response = "{\"success\":true";
     if (needsRestart) {
@@ -321,9 +323,7 @@ void handleUpdateConfig(AsyncWebServerRequest *request) {
   }
   
   if (changed) {
-    playAnimation(ANIM_SAVING);
-    saveConfig();
-    playAnimation(ANIM_SUCCESS);
+    markConfigDirty();
     request->send(200, "application/json", "{\"success\":true}");
   } else {
     request->send(400, "application/json", "{\"error\":\"No parameters provided\"}");
@@ -356,9 +356,7 @@ void handleSetBrightness(AsyncWebServerRequest *request) {
   FastLED.setBrightness(brightness);
   FastLED.show();
   
-  playAnimation(ANIM_SAVING);
-  saveConfig();
-  playAnimation(ANIM_SUCCESS);
+  markConfigDirty();  // Defer save to reduce flash wear
   
   request->send(200, "application/json", "{\"success\":true,\"brightness\":" + String(brightness) + "}");
 }
@@ -378,7 +376,7 @@ void handleSetColor(AsyncWebServerRequest *request) {
   greenval = config.display.colorG;
   blueval = config.display.colorB;
   
-  saveConfig();
+  markConfigDirty();  // Defer save to reduce flash wear
   
   request->send(200, "application/json", "{\"success\":true}");
 }

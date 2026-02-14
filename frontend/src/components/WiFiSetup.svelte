@@ -173,9 +173,14 @@
       <button
         type="submit"
         disabled={connecting || !password}
-        class="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed rounded-lg transition-all font-medium"
+        class="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed rounded-lg transition-all font-medium flex items-center justify-center gap-2"
       >
-        {connecting ? 'Connecting...' : 'Connect to Network'}
+        {#if connecting}
+          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+          <span>Connecting...</span>
+        {:else}
+          Connect to Network
+        {/if}
       </button>
     </form>
   {/if}

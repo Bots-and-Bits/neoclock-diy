@@ -1,4 +1,4 @@
-void setminutes(int m, int h)  //minuten setzen
+void setMinutes(int m, int h)  // Set minutes and display time
 {
   FastLED.clear ();
 
@@ -20,7 +20,7 @@ void setminutes(int m, int h)  //minuten setzen
 
   if ((m >= 0 && m < 5) || m == 60)
   {
-    sethour(h);
+    setHour(h);
     if (h == 1)
     {
       leds[56] = CRGB::Black;
@@ -34,46 +34,46 @@ void setminutes(int m, int h)  //minuten setzen
 
   if (m >= 5 && m < 10)
   {
-    sethour(h);
-    fuenf();
-    nach();
+    setHour(h);
+    displayFive();
+    displayPast();
   }
 
   if (m >= 10 && m < 15)
   {
-    sethour(h);
-    zehn();
-    nach();
+    setHour(h);
+    displayTen();
+    displayPast();
   }
 
   if (m >= 15 && m < 20)
   {
-    sethour(h);
-    viertel();
-    nach();
+    setHour(h);
+    displayQuarter();
+    displayPast();
   }
 
   if (m >= 20 && m < 25)
   {
-    sethour(h);
-    zwanzig();
-    nach();
+    setHour(h);
+    displayTwenty();
+    displayPast();
   }
 
   if (m >= 25 && m < 30)
   {
-    sethour(h);
-    fuenf();
-    zwanzig();
-    nach();
+    setHour(h);
+    displayFive();
+    displayTwenty();
+    displayPast();
   }
 
   if (m >= 30 && m < 35)
   {
 
-    sethour(h + 1);
+    setHour(h + 1);
 
-    //HALB
+    //HALB (half past)
     leds[107] = CRGB(redval, greenval, blueval);
     leds[97] = CRGB(redval, greenval, blueval);
     leds[86] = CRGB(redval, greenval, blueval);
@@ -82,41 +82,41 @@ void setminutes(int m, int h)  //minuten setzen
 
   if (m >= 35 && m < 40)
   {
-    sethour(h + 1);
-    fuenf();
-    zwanzig();
+    setHour(h + 1);
+    displayFive();
+    displayTwenty();
 
-    vor();
+    displayTo();
   }
 
   if (m >= 40 && m < 45)
   {
-    sethour(h + 1);
-    zwanzig();
+    setHour(h + 1);
+    displayTwenty();
 
-    vor();
+    displayTo();
   }
 
   if (m >= 45 && m < 50)
   {
-    sethour(h + 1);
+    setHour(h + 1);
 
-    viertel();
-    vor();
+    displayQuarter();
+    displayTo();
   }
 
   if (m >= 50 && m < 55)
   {
-    sethour(h + 1);
-    zehn();
-    vor();
+    setHour(h + 1);
+    displayTen();
+    displayTo();
   }
 
   if (m >= 55 && m < 60)
   {
-    sethour(h + 1);
-    fuenf();
-    vor();
+    setHour(h + 1);
+    displayFive();
+    displayTo();
   }
 
 
@@ -125,7 +125,7 @@ void setminutes(int m, int h)  //minuten setzen
     e = e - 5;
   }
 
-  switch (e) {   //ecken setzten
+  switch (e) {   // Set corner LEDs (minute indicators)
 
     case 1:
       leds[102] = CRGB(redval, greenval, blueval);
@@ -156,15 +156,13 @@ void setminutes(int m, int h)  //minuten setzen
 }
 
 
-void sethour(int h)  //Stunden setzen
+void setHour(int h)  // Set hours (convert 24h to 12h format)
 {
-  if (h == 13)
-  {
-    h = 1;
-  }
-  if (h == 0)
-  {
+  // Convert 24-hour to 12-hour format
+  if (h == 0) {
     h = 12;
+  } else if (h > 12) {
+    h = h - 12;
   }
 
   switch (h) {
@@ -264,7 +262,7 @@ void sethour(int h)  //Stunden setzen
 
 }
 
-void fuenf()
+void displayFive()  // "FÜNF" (five minutes)
 {
   //Fünf
   leds[41] = CRGB(redval, greenval, blueval);
@@ -274,7 +272,7 @@ void fuenf()
 
 }
 
-void zehn()
+void displayTen()  // "ZEHN" (ten minutes)
 {
   //ZEHN
   leds[104] = CRGB(redval, greenval, blueval);
@@ -282,7 +280,7 @@ void zehn()
   leds[83] = CRGB(redval, greenval, blueval);
   leds[80] = CRGB(redval, greenval, blueval);
 }
-void viertel()
+void displayQuarter()  // "VIERTEL" (quarter)
 {
   //Viertel
   leds[64] = CRGB(redval, greenval, blueval);
@@ -295,7 +293,7 @@ void viertel()
 
 }
 
-void zwanzig()
+void displayTwenty()  // "ZWANZIG" (twenty minutes)
 {
   //ZWANZIG
   leds[63] = CRGB(redval, greenval, blueval);
@@ -307,7 +305,7 @@ void zwanzig()
   leds[2] = CRGB(redval, greenval, blueval);
 }
 
-void vor()
+void displayTo()  // "VOR" (to/before the hour)
 {
 
   //VOR
@@ -317,7 +315,7 @@ void vor()
   leds[25] = CRGB(redval, greenval, blueval);
 }
 
-void nach()
+void displayPast()  // "NACH" (past the hour)
 {
   //NACH
   leds[85] = CRGB(redval, greenval, blueval);
@@ -360,7 +358,7 @@ void dealwithnighttime()
     {
       if (stunden >= temphourstart || stunden <= temphourend )
       {
-        //nachthelligkeit
+        // Night mode brightness
         if (stunden != temphourstart && stunden != temphourend)
         {
           nighttime = true;

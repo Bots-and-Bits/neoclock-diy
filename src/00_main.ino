@@ -70,6 +70,11 @@ int wifiReconnectAttempts = 0;
 // Watchdog
 #define WDT_TIMEOUT 30  // 30 second watchdog timeout
 
+// Config persistence (write-through cache)
+bool configDirty = false;
+unsigned long lastConfigSave = 0;
+const unsigned long CONFIG_SAVE_INTERVAL = 30000;  // Save to flash every 30s if dirty
+
 // ============= SETUP =============
 void setup() {
   Serial.begin(115200);
@@ -143,8 +148,17 @@ void loop() {
   
   // Update clock display (unless animation is playing)
   if (!isAnimationPlaying()) {
-    setminutes(minuten, stunden);
+    setMinutes(minuten, stunden);
     applyBrightnessSettings();
+  }
+  
+  // Periodic config save (write-through cache)
+  // Only save to flash every 30s if config changed to reduce wear
+  if (configDirty && (millis() - lastConfigSave >= CONFIG_SAVE_INTERVAL)) {
+    Serial.println("💾 Saving config to flash (periodic)");
+    saveConfig();
+    configDirty = false;
+    lastConfigSave = millis();
   }
   
   // WiFi reconnect logic
@@ -189,8 +203,6 @@ void connectWiFi() {
     Serial.println("\n✅ WiFi connected!");
     Serial.printf("📶 IP Address: %s\n", WiFi.localIP().toString().c_str());
     Serial.printf("📶 Signal: %d dBm\n", WiFi.RSSI());
-    
-    showWiFiConnected(WiFi.localIP());
   } else {
     Serial.println("\n❌ WiFi connection failed");
     startAccessPoint();

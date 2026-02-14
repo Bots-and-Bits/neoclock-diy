@@ -6,7 +6,6 @@
   export let config;
   
   let localConfig = null;
-  let saving = false;
   let message = '';
   let messageType = '';
   
@@ -46,12 +45,11 @@
   
   let timezoneSearch = '';
   let showTimezoneDropdown = false;
-  let updateTimeout = null;
   let userIsEditing = false;  // Track if user is actively editing
   let editingTimeoutId = null;
   
-  // Reactively update colorHex when localConfig color changes
-  $: if (localConfig && localConfig.display && localConfig.display.color) {
+  // Reactively update colorHex when localConfig color changes (but not while editing)
+  $: if (!userIsEditing && localConfig && localConfig.display && localConfig.display.color) {
     const newHex = rgbToHex(localConfig.display.color.r, localConfig.display.color.g, localConfig.display.color.b);
     if (newHex !== colorHex) {
       colorHex = newHex;
@@ -69,9 +67,11 @@
   
   function selectTimezone(tz) {
     if (localConfig) {
+      blockParentUpdates();
       localConfig.time.timezone = tz;
       timezoneSearch = tz;
       showTimezoneDropdown = false;
+      saveConfigImmediately();
     }
   }
   
@@ -84,11 +84,13 @@
     try {
       const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (detectedTz && localConfig) {
+        blockParentUpdates();
         localConfig.time.timezone = detectedTz;
         timezoneSearch = detectedTz;
         message = `Timezone auto-detected: ${detectedTz}`;
         messageType = 'success';
         setTimeout(() => { message = ''; }, 3000);
+        saveConfigImmediately();
       }
     } catch (e) {
       message = 'Failed to auto-detect timezone';
@@ -114,8 +116,24 @@
           console.log('[Settings] Config is valid, cloning...');
           localConfig = JSON.parse(JSON.stringify(config));  // Deep copy
           
+          // Normalize structure: ensure nightMode object exists with expected fields
+          if (!localConfig.display.nightMode || typeof localConfig.display.nightMode !== 'object') {
+            localConfig.display.nightMode = {
+              enabled: !!config.display.nightMode?.enabled || !!config.display.nightModeEnabled,
+              brightness: config.display.nightMode?.brightness ?? config.display.nightBrightness ?? 20,
+              startHour: config.display.nightMode?.startHour ?? config.display.nightStartHour ?? 22,
+              endHour: config.display.nightMode?.endHour ?? config.display.nightEndHour ?? 7
+            };
+          } else {
+            // Fill missing fields if any
+            localConfig.display.nightMode.enabled = localConfig.display.nightMode.enabled ?? (config.display.nightModeEnabled ?? false);
+            localConfig.display.nightMode.brightness = localConfig.display.nightMode.brightness ?? (config.display.nightBrightness ?? 20);
+            localConfig.display.nightMode.startHour = localConfig.display.nightMode.startHour ?? (config.display.nightStartHour ?? 22);
+            localConfig.display.nightMode.endHour = localConfig.display.nightMode.endHour ?? (config.display.nightEndHour ?? 7);
+          }
+
           // Set timezone search to current timezone
-          timezoneSearch = localConfig.time.timezone;
+          timezoneSearch = localConfig.time?.timezone || config.time?.timezone || '';
           
           console.log('[Settings] LocalConfig set:', localConfig);
         } else {
@@ -158,43 +176,32 @@
     }
   }
   
-  // Real-time display updates (debounced)
-  function updateDisplayRealtime() {
-    if (updateTimeout) clearTimeout(updateTimeout);
-    if (editingTimeoutId) clearTimeout(editingTimeoutId);
+  // Real-time display updates - send immediately, no debouncing
+  async function updateDisplayRealtime() {
+    if (!localConfig) return;
     
-    userIsEditing = true;
+    // Block parent config updates temporarily
+    blockParentUpdates();
     
-    updateTimeout = setTimeout(async () => {
-      if (!localConfig) return;
-      
-      try {
-        await fetch('/api/display', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            brightness: localConfig.display.brightness,
-            r: localConfig.display.color.r,
-            g: localConfig.display.color.g,
-            b: localConfig.display.color.b
-          })
-        });
-        console.log('[Settings] Display updated in real-time');
-      } catch (error) {
-        console.error('Failed to update display:', error);
-      }
-      
-      // Keep userIsEditing true for 5 seconds after last change
-      editingTimeoutId = setTimeout(() => {
-        userIsEditing = false;
-        console.log('[Settings] Editing timeout - allowing config updates again');
-      }, 5000);
-    }, 150); // 150ms debounce
+    try {
+      await fetch('/api/display', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brightness: localConfig.display.brightness,
+          r: localConfig.display.color.r,
+          g: localConfig.display.color.g,
+          b: localConfig.display.color.b
+        })
+      });
+    } catch (error) {
+      console.error('Failed to update display:', error);
+    }
   }
 
-  async function saveSettings() {
-    saving = true;
-    message = '';
+  // Save full config immediately (for timezone, night mode, etc.)
+  async function saveConfigImmediately() {
+    if (!localConfig) return;
     
     try {
       const response = await fetch('/api/config', {
@@ -206,44 +213,39 @@
       const result = await response.json();
       
       if (result.success) {
-        message = 'Settings saved successfully!';
-        messageType = 'success';
         dispatch('save');
         
         if (result.restart) {
-          message += ' Device will restart to apply timezone changes.';
+          message = 'Timezone changed - restarting device...';
+          messageType = 'info';
           setTimeout(() => {
             fetch('/api/restart', { method: 'POST' });
           }, 2000);
         }
-      } else {
-        message = 'Failed to save settings';
-        messageType = 'error';
       }
     } catch (error) {
-      message = 'Error: ' + error.message;
-      messageType = 'error';
+      console.error('Failed to save config:', error);
     }
-    
-    saving = false;
+  }
+  
+  // Block parent updates for critical changes (toggles, etc.)
+  function blockParentUpdates() {
+    userIsEditing = true;
+    if (editingTimeoutId) clearTimeout(editingTimeoutId);
+    editingTimeoutId = setTimeout(() => {
+      userIsEditing = false;
+    }, 2000);
   }
 </script>
 
 <div class="space-y-6">
   <div class="flex flex-col gap-2">
-    <div class="flex justify-between items-center">
-      <h2 class="text-2xl font-bold">Settings</h2>
-      <button 
-        on:click={saveSettings}
-        disabled={saving || !localConfig}
-        class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-600 rounded-lg transition-all font-medium"
-      >
-        {saving ? 'Saving...' : 'Save Changes'}
-      </button>
-    </div>
-    <p class="text-sm text-gray-400">
-      💡 Brightness and color update in real-time. Save is only needed for timezone and night mode settings.
-    </p>
+    <h2 class="text-2xl font-bold">Settings</h2>
+    {#if message}
+      <div class="text-sm {messageType === 'success' ? 'text-green-400' : 'text-red-400'}">
+        {message}
+      </div>
+    {/if}
   </div>
 
   {#if !localConfig}
@@ -289,7 +291,7 @@
               id="color"
               type="color"
               bind:value={colorHex}
-              on:change={updateColorFromHex}
+              on:input={updateColorFromHex}
               class="w-16 h-16 rounded-lg cursor-pointer bg-gray-800 border-2 border-gray-600"
             />
             <div class="flex-1">
@@ -304,40 +306,53 @@
 
         <div class="border-t border-gray-600 pt-4">
           <div class="flex items-center justify-between mb-4">
-            <label for="nightMode" class="text-sm font-medium text-gray-300">
-              Night Mode
+            <div>
+              <div class="text-sm font-medium text-gray-300">Night Mode</div>
+              <div class="text-xs text-gray-500">Automatically dim display at night</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                bind:checked={localConfig.display.nightMode.enabled}
+                on:click={() => blockParentUpdates()}
+                on:change={() => saveConfigImmediately()}
+                class="sr-only peer"
+              />
+              <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
             </label>
-            <input
-              id="nightMode"
-              type="checkbox"
-              bind:checked={localConfig.display.nightMode.enabled}
-              class="w-5 h-5 rounded bg-gray-600 border-gray-500 text-purple-600 focus:ring-purple-500 focus:ring-2"
-            />
           </div>
 
           {#if localConfig.display.nightMode.enabled}
-            <div class="space-y-4 pl-4 border-l-2 border-purple-500/30">
+            <div class="space-y-4 pl-4 border-l-2 border-purple-500/30 mt-4">
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label for="nightStart" class="block text-sm text-gray-400 mb-1">Start Hour</label>
+                  <label for="nightStart" class="block text-sm text-gray-400 mb-1">Start Time</label>
                   <input
                     id="nightStart"
-                    type="number"
-                    min="0"
-                    max="23"
-                    bind:value={localConfig.display.nightMode.startHour}
-                    class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                    type="time"
+                    value={String(localConfig.display.nightMode.startHour).padStart(2, '0') + ':00'}
+                    on:change={(e) => {
+                      blockParentUpdates();
+                      const [hours] = e.target.value.split(':');
+                      localConfig.display.nightMode.startHour = parseInt(hours, 10);
+                      saveConfigImmediately();
+                    }}
+                    class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-white"
                   />
                 </div>
                 <div>
-                  <label for="nightEnd" class="block text-sm text-gray-400 mb-1">End Hour</label>
+                  <label for="nightEnd" class="block text-sm text-gray-400 mb-1">End Time</label>
                   <input
                     id="nightEnd"
-                    type="number"
-                    min="0"
-                    max="23"
-                    bind:value={localConfig.display.nightMode.endHour}
-                    class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                    type="time"
+                    value={String(localConfig.display.nightMode.endHour).padStart(2, '0') + ':00'}
+                    on:change={(e) => {
+                      blockParentUpdates();
+                      const [hours] = e.target.value.split(':');
+                      localConfig.display.nightMode.endHour = parseInt(hours, 10);
+                      saveConfigImmediately();
+                    }}
+                    class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-white"
                   />
                 </div>
               </div>
@@ -352,9 +367,17 @@
                   min="0"
                   max="100"
                   value={Math.round(localConfig.display.nightMode.brightness / 2.55)}
-                  on:input={(e) => localConfig.display.nightMode.brightness = Math.round(e.target.value * 2.55)}
+                  on:input={(e) => {
+                    blockParentUpdates();
+                    localConfig.display.nightMode.brightness = Math.round(e.target.value * 2.55);
+                  }}
+                  on:change={() => saveConfigImmediately()}
                   class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Off (0%)</span>
+                  <span>Max (100%)</span>
+                </div>
               </div>
             </div>
           {/if}

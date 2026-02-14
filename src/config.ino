@@ -131,3 +131,20 @@ void printConfig() {
   
   Serial.println("==========================================\n");
 }
+
+// Mark config as dirty (needs save to flash)
+void markConfigDirty() {
+  extern bool configDirty;
+  extern unsigned long lastConfigSave;
+  configDirty = true;
+  // Reset timer so we save within 30s from the LAST change
+  lastConfigSave = millis();
+}
+
+// Force immediate save (for critical operations like timezone change, restart)
+void saveConfigImmediate() {
+  extern bool configDirty;
+  saveConfig();
+  configDirty = false;
+}
+

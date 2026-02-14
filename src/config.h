@@ -52,11 +52,14 @@ struct Config {
 // ============= GLOBAL CONFIGURATION =============
 extern Config config;
 extern Preferences preferences;
+extern bool configDirty;  // Tracks if config changed since last flash save
 
 // ============= FUNCTION DECLARATIONS =============
 void loadConfig();
 void saveConfig();
 void resetConfig();
 void printConfig();
+void markConfigDirty();  // Mark config as needing save (deferred)
+void saveConfigImmediate();  // Force immediate save (critical operations only)
 
 #endif  // CONFIG_H
