@@ -1,0 +1,321 @@
+<script>
+  import { createEventDispatcher } from 'svelte';
+  
+  const dispatch = createEventDispatcher();
+  
+  export let config;
+  export let status;
+  
+  let localConfig = null;
+  let saving = false;
+  let message = '';
+  let messageType = '';
+  
+  // Reactively update localConfig when config changes
+  $: {
+    try {
+      if (config && 
+          config.display && 
+          config.time &&
+          config.network &&
+          config.firmware) {
+        localConfig = JSON.parse(JSON.stringify(config));
+      }
+    } catch (e) {
+      console.error('[Advanced] Failed to process config:', e);
+    }
+  }
+
+  async function saveSettings() {
+    saving = true;
+    message = '';
+    
+    try {
+      const response = await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(localConfig)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        message = 'Settings saved successfully!';
+        messageType = 'success';
+        dispatch('save');
+        
+        if (result.restart) {
+          message += ' Device will restart to apply changes.';
+          setTimeout(() => {
+            fetch('/api/restart', { method: 'POST' });
+          }, 2000);
+        }
+      } else {
+        message = 'Failed to save settings';
+        messageType = 'error';
+      }
+    } catch (error) {
+      message = 'Error: ' + error.message;
+      messageType = 'error';
+    }
+    
+    saving = false;
+  }
+
+  async function resetToDefaults() {
+    if (confirm('Reset all settings to factory defaults? This will restart the device.')) {
+      try {
+        await fetch('/api/config/reset', { method: 'POST' });
+        message = 'Settings reset. Device is restarting...';
+        messageType = 'success';
+      } catch (error) {
+        // Expected - device is rebooting
+      }
+    }
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      message = 'Copied to clipboard!';
+      messageType = 'success';
+      setTimeout(() => { message = ''; }, 2000);
+    });
+  }
+</script>
+
+<div class="space-y-6">
+  <div class="flex justify-between items-center">
+    <h2 class="text-2xl font-bold">Advanced Settings</h2>
+    <button 
+      on:click={saveSettings}
+      disabled={saving || !localConfig}
+      class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-600 rounded-lg transition-all font-medium"
+    >
+      {saving ? 'Saving...' : 'Save Changes'}
+    </button>
+  </div>
+
+  {#if !localConfig}
+    <div class="text-center py-12 text-gray-400">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+      <p>Loading settings...</p>
+    </div>
+  {:else}
+  <div class="space-y-6">
+    <!-- Network Information -->
+    <div class="bg-gray-700/30 rounded-lg p-6 border border-gray-600">
+      <h3 class="text-xl font-semibold mb-4 text-blue-400">Network Information</h3>
+      
+      <div class="space-y-3">
+        {#if status?.wifi?.connected}
+          <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+            <div>
+              <span class="text-sm text-gray-400">WiFi IP Address:</span>
+              <div class="font-mono text-green-400 font-medium">{status.wifi.ip || 'Not available'}</div>
+            </div>
+            <button 
+              on:click={() => copyToClipboard(status.wifi.ip)}
+              class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+            >
+              📋 Copy
+            </button>
+          </div>
+        {/if}
+        
+        <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+          <div>
+            <span class="text-sm text-gray-400">Hostname (mDNS):</span>
+            <div class="font-mono text-purple-400 font-medium">http://{localConfig.network.hostname}.local</div>
+          </div>
+          <button 
+            on:click={() => copyToClipboard(`http://${localConfig.network.hostname}.local`)}
+            class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+          >
+            📋 Copy
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Network Settings -->
+    <div class="bg-gray-700/30 rounded-lg p-6 border border-gray-600">
+      <h3 class="text-xl font-semibold mb-4 text-blue-400">Network Settings</h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label for="hostname" class="block text-sm font-medium text-gray-300 mb-2">
+            Hostname
+          </label>
+          <input
+            id="hostname"
+            type="text"
+            bind:value={localConfig.network.hostname}
+            placeholder="wordclock"
+            class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            Access device at http://{localConfig.network.hostname}.local
+          </p>
+        </div>
+
+        <div>
+          <label for="apSSID" class="block text-sm font-medium text-gray-300 mb-2">
+            Access Point SSID
+          </label>
+          <input
+            id="apSSID"
+            type="text"
+            bind:value={localConfig.network.apSSID}
+            placeholder="Wordclock-Setup"
+            class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            WiFi network name when in setup mode (no password required)
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Time Settings -->
+    <div class="bg-gray-700/30 rounded-lg p-6 border border-gray-600">
+      <h3 class="text-xl font-semibold mb-4 text-green-400">Time Settings</h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label for="timezone-manual" class="block text-sm font-medium text-gray-300 mb-2">
+            Timezone (Manual Entry)
+          </label>
+          <input
+            id="timezone-manual"
+            type="text"
+            bind:value={localConfig.time.timezone}
+            placeholder="Europe/Berlin"
+            class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-mono"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            IANA timezone format. Examples: America/New_York, Europe/London, Asia/Tokyo
+          </p>
+        </div>
+
+        <div>
+          <label for="ntpServer" class="block text-sm font-medium text-gray-300 mb-2">
+            NTP Server
+          </label>
+          <input
+            id="ntpServer"
+            type="text"
+            bind:value={localConfig.time.ntpServer}
+            placeholder="pool.ntp.org"
+            class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            Time server for synchronization. Default: pool.ntp.org
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Firmware Settings -->
+    <div class="bg-gray-700/30 rounded-lg p-6 border border-gray-600">
+      <h3 class="text-xl font-semibold mb-4 text-orange-400">Firmware Settings</h3>
+      
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <label for="updateCheck" class="text-sm font-medium text-gray-300">
+            Automatic Update Checks
+          </label>
+          <input
+            id="updateCheck"
+            type="checkbox"
+            bind:checked={localConfig.firmware.updateCheck}
+            class="w-5 h-5 rounded bg-gray-600 border-gray-500 text-purple-600 focus:ring-purple-500 focus:ring-2"
+          />
+        </div>
+
+        {#if localConfig.firmware.updateCheck}
+          <div>
+            <label for="updateUrl" class="block text-sm font-medium text-gray-300 mb-2">
+              Update URL (GitHub Releases API)
+            </label>
+            <input
+              id="updateUrl"
+              type="text"
+              bind:value={localConfig.firmware.updateUrl}
+              placeholder="https://api.github.com/repos/user/repo/releases/latest"
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm font-mono"
+            />
+          </div>
+        {/if}
+      </div>
+    </div>
+
+    <!-- System Information -->
+    {#if status}
+    <div class="bg-gray-700/30 rounded-lg p-6 border border-gray-600">
+      <h3 class="text-xl font-semibold mb-4 text-red-400">System Information</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-3 bg-gray-800/50 rounded-lg">
+          <div class="text-sm text-gray-400">Free Heap Memory</div>
+          <div class="text-xl font-bold text-green-400">{formatBytes(status.system.freeHeap)}</div>
+          <div class="text-xs text-gray-500">of {formatBytes(status.system.heapSize)} total</div>
+        </div>
+        
+        <div class="p-3 bg-gray-800/50 rounded-lg">
+          <div class="text-sm text-gray-400">Memory Usage</div>
+          <div class="text-xl font-bold text-blue-400">
+            {Math.round((status.system.freeHeap / status.system.heapSize) * 100)}%
+          </div>
+          <div class="text-xs text-gray-500">free</div>
+        </div>
+        
+        <div class="p-3 bg-gray-800/50 rounded-lg">
+          <div class="text-sm text-gray-400">Total LEDs</div>
+          <div class="text-xl font-bold text-purple-400">{status.display.leds || 115}</div>
+          <div class="text-xs text-gray-500">WS2812B addressable</div>
+        </div>
+        
+        <div class="p-3 bg-gray-800/50 rounded-lg">
+          <div class="text-sm text-gray-400">Firmware Version</div>
+          <div class="text-xl font-bold text-orange-400">{config.firmware.version}</div>
+          <div class="text-xs text-gray-500">ESP32 platform</div>
+        </div>
+      </div>
+    </div>
+    {/if}
+
+    <!-- Danger Zone -->
+    <div class="bg-red-900/20 rounded-lg p-6 border border-red-500/30">
+      <h3 class="text-xl font-semibold mb-4 text-red-400">⚠️ Danger Zone</h3>
+      
+      <div class="space-y-3">
+        <p class="text-sm text-gray-400">
+          Reset all settings to factory defaults. This will erase all your custom configuration 
+          and restart the device in setup mode.
+        </p>
+        <button 
+          on:click={resetToDefaults}
+          class="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors font-medium"
+        >
+          🗑️ Factory Reset
+        </button>
+      </div>
+    </div>
+  </div>
+  {/if}
+
+  <!-- Status Message -->
+  {#if message}
+    <div class="p-4 rounded-lg {messageType === 'success' ? 'bg-green-600/20 border border-green-500 text-green-400' : 'bg-red-600/20 border border-red-500 text-red-400'}">
+      {message}
+    </div>
+  {/if}
+</div>

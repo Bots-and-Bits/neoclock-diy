@@ -1,0 +1,62 @@
+// ============= CONFIGURATION HEADER =============
+// Structured configuration management for ESP32 Wordclock
+// Uses Preferences library for persistent storage
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include <Arduino.h>
+#include <Preferences.h>
+
+// ============= CONFIGURATION STRUCTURES =============
+
+struct DisplayConfig {
+  uint8_t brightness = 80;           // LED brightness (0-255)
+  uint8_t nightBrightness = 20;      // Night mode brightness
+  bool nightModeEnabled = false;     // Enable automatic night mode
+  uint8_t nightStartHour = 22;       // Night mode start (22:00)
+  uint8_t nightEndHour = 7;          // Night mode end (07:00)
+  uint8_t colorR = 255;              // Default color: white
+  uint8_t colorG = 255;
+  uint8_t colorB = 255;
+};
+
+struct TimeConfig {
+  char timezone[64] = "Europe/Berlin";  // IANA timezone string
+  char ntpServer[64] = "pool.ntp.org";  // NTP server address
+};
+
+struct NetworkConfig {
+  char ssid[64] = "";
+  char password[64] = "";
+  char hostname[32] = "wordclock";
+  bool apMode = false;               // Access Point mode when no WiFi
+  char apSSID[32] = "Wordclock-Setup";
+  // No AP password - hotspot is always open for easy setup
+};
+
+struct FirmwareConfig {
+  char version[16] = "4.0.0";
+  char updateURL[128] = "https://api.github.com/repos/YOUR_USERNAME/wordclock/releases/latest";
+  bool autoCheckUpdates = true;
+  uint32_t updateCheckInterval = 86400;  // Check daily (seconds)
+};
+
+struct Config {
+  DisplayConfig display;
+  TimeConfig time;
+  NetworkConfig network;
+  FirmwareConfig firmware;
+};
+
+// ============= GLOBAL CONFIGURATION =============
+extern Config config;
+extern Preferences preferences;
+
+// ============= FUNCTION DECLARATIONS =============
+void loadConfig();
+void saveConfig();
+void resetConfig();
+void printConfig();
+
+#endif  // CONFIG_H
