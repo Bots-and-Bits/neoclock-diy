@@ -424,8 +424,11 @@ void animationWiFiConnected(IPAddress ip) {
 
 // Non-blocking rainbow visual mode (uses config.display.modeSpeed)
 void animationRainbowMode() {
+  static unsigned long lastDebug = 0;
   unsigned long now = millis();
-  unsigned long msPerStep = map(config.display.modeSpeed, 0, 255, 1000, 10); // low speed -> long step
+  // Slower, smoother rainbow cycling
+  // Speed 0 = ~60 seconds per cycle, Speed 255 = ~3 seconds per cycle
+  unsigned long msPerStep = map(config.display.modeSpeed, 0, 255, 235, 12);
 
   // Advance hue based on time and speed
   uint8_t hueBase = (uint8_t)((now / msPerStep) & 0xFF);
@@ -433,9 +436,28 @@ void animationRainbowMode() {
   // Use global brightness setting
   FastLED.setBrightness(config.display.brightness);
 
-  for (int i = 0; i < LED_COUNT; i++) {
-    leds[i] = CHSV(hueBase + (i * 256 / LED_COUNT), 255, 255);
+  // Debug output every 2 seconds
+  if (now - lastDebug > 2000) {
+    Serial.printf("[Rainbow] Speed:%d msPerStep:%lu hueBase:%d brightness:%d\n", 
+                  config.display.modeSpeed, msPerStep, hueBase, config.display.brightness);
+    lastDebug = now;
   }
+
+  // Apply rainbow gradient based on LED position across entire panel,
+  // but only to LEDs that are currently lit (forming words)
+  int litCount = 0;
+  for (int i = 0; i < LED_COUNT; i++) {
+    if (leds[i].r > 0 || leds[i].g > 0 || leds[i].b > 0) {
+      // Calculate color based on position in full strip
+      leds[i] = CHSV(hueBase + (i * 256 / LED_COUNT), 255, 255);
+      litCount++;
+    }
+  }
+  
+  if (now - lastDebug > 2000 && now - lastDebug < 2100) {
+    Serial.printf("[Rainbow] Lit LEDs: %d/%d\n", litCount, LED_COUNT);
+  }
+  
   FastLED.show();
 }
 

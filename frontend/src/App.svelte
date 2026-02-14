@@ -24,22 +24,31 @@
     firmware: { version: '4.0.0', updateURL: '', autoCheckUpdates: true }
   };
   let loading = true;
+  let connectionState = 'connected'; // 'connected', 'disconnected', 'reconnecting'
+  let reconnectAttempts = 0;
+  let maxReconnectAttempts = 5;
 
   async function fetchWiFiStatus() {
     try {
-      const response = await fetch('/api/wifi/status');
+      const response = await fetch('/api/wifi/status', { signal: AbortSignal.timeout(5000) });
       wifiStatus = await response.json();
+      connectionState = 'connected';
+      reconnectAttempts = 0;
     } catch (error) {
       console.error('Failed to fetch WiFi status:', error);
+      handleConnectionLost();
     }
   }
 
   async function fetchStatus() {
     try {
-      const response = await fetch('/api/status');
+      const response = await fetch('/api/status', { signal: AbortSignal.timeout(5000) });
       status = await response.json();
+      connectionState = 'connected';
+      reconnectAttempts = 0;
     } catch (error) {
       console.error('Failed to fetch status:', error);
+      handleConnectionLost();
     }
   }
 
@@ -47,7 +56,8 @@
     try {
       const response = await fetch('/api/config', {
         cache: 'no-cache',
-        headers: { 'Cache-Control': 'no-cache' }
+        headers: { 'Cache-Control': 'no-cache' },
+        signal: AbortSignal.timeout(5000)
       });
       console.log('Config response status:', response.status, response.statusText);
       const text = await response.text();
@@ -69,10 +79,51 @@
       }
       
       loading = false;
+      connectionState = 'connected';
+      reconnectAttempts = 0;
     } catch (error) {
       console.error('Failed to fetch config:', error);
-      // Keep default config on error
       loading = false;
+      handleConnectionLost();
+    }
+  }
+
+  function handleConnectionLost() {
+    if (connectionState === 'connected') {
+      connectionState = 'disconnected';
+      reconnectAttempts = 0;
+      attemptReconnect();
+    }
+  }
+
+  async function attemptReconnect() {
+    if (reconnectAttempts >= maxReconnectAttempts) {
+      console.log('Max reconnect attempts reached');
+      return;
+    }
+
+    connectionState = 'reconnecting';
+    reconnectAttempts++;
+    
+    console.log(`Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
+    
+    // Wait before retrying (exponential backoff: 1s, 2s, 4s, 8s, 16s)
+    await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 16000)));
+    
+    try {
+      const response = await fetch('/api/status', { signal: AbortSignal.timeout(3000) });
+      if (response.ok) {
+        console.log('Reconnected successfully');
+        connectionState = 'connected';
+        reconnectAttempts = 0;
+        // Refresh all data
+        await Promise.all([fetchWiFiStatus(), fetchConfig(), fetchStatus()]);
+      } else {
+        throw new Error('Connection failed');
+      }
+    } catch (error) {
+      console.log('Reconnection failed, retrying...');
+      attemptReconnect();
     }
   }
 
@@ -193,6 +244,40 @@
       <p>Wordclock 3.1 • {config?.firmware?.version || '...'} • Built with ❤️ and Svelte</p>
     </footer>
   </div>
+
+  <!-- Reconnecting Overlay -->
+  {#if connectionState === 'reconnecting' || connectionState === 'disconnected'}
+    <div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+      <div class="bg-gray-800 rounded-lg p-8 max-w-md mx-4 border-2 border-purple-500 shadow-2xl">
+        <div class="flex flex-col items-center">
+          {#if connectionState === 'reconnecting'}
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500 mb-4"></div>
+            <h2 class="text-xl font-bold mb-2">Reconnecting...</h2>
+            <p class="text-gray-400 text-center mb-2">
+              Attempting to reconnect to Wordclock
+            </p>
+            <p class="text-sm text-gray-500">
+              Attempt {reconnectAttempts} of {maxReconnectAttempts}
+            </p>
+          {:else}
+            <svg class="w-16 h-16 text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3" />
+            </svg>
+            <h2 class="text-xl font-bold mb-2 text-red-400">Connection Lost</h2>
+            <p class="text-gray-400 text-center mb-4">
+              Unable to connect to Wordclock
+            </p>
+            <button 
+              on:click={() => { reconnectAttempts = 0; attemptReconnect(); }}
+              class="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+            >
+              Retry Connection
+            </button>
+          {/if}
+        </div>
+      </div>
+    </div>
+  {/if}
 </main>
 
 <style>

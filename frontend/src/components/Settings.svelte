@@ -293,7 +293,7 @@
 
         <div>
           <label for="color" class="block text-sm font-medium text-gray-300 mb-2">
-            LED Color
+            Primary Color
           </label>
           <div class="flex gap-3 items-center">
             <input
@@ -311,6 +311,7 @@
               </div>
             </div>
           </div>
+          <div class="text-xs text-gray-500 mt-2 italic">Used by all display modes. For gradients, set a secondary color below.</div>
         </div>
 
         <!-- Display modes -->
@@ -357,9 +358,9 @@
 
           {#if localConfig.display.displayMode == 4}
             <!-- Smooth Gradient: secondary color -->
-            <div class="mt-3 space-y-3">
+            <div class="mt-3 space-y-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
               <div>
-                <label class="block text-sm text-gray-400 mb-1">Secondary Color</label>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Secondary Color (Gradient Target)</label>
                 <div class="flex gap-3 items-center">
                   <input type="color" value={rgbToHex(localConfig.display.color2R, localConfig.display.color2G, localConfig.display.color2B)}
                     on:input={(e) => { blockParentUpdates(); const rgb = hexToRgb(e.target.value); if (rgb) { localConfig.display.color2R = rgb.r; localConfig.display.color2G = rgb.g; localConfig.display.color2B = rgb.b; updateDisplayRealtime(); } }}

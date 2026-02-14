@@ -155,6 +155,144 @@ void setMinutes(int m, int h)  // Set minutes and display time
 
 }
 
+// Same as setMinutes() but without FastLED.show() or delay
+// Used for rainbow mode to avoid flickering
+void setMinutesNoShow(int m, int h)
+{
+  FastLED.clear ();
+
+  //ES IST
+  leds[103] = CRGB(redval, greenval, blueval);
+  leds[101] = CRGB(redval, greenval, blueval);
+  leds[61] = CRGB(redval, greenval, blueval);
+  leds[81] = CRGB(redval, greenval, blueval);
+  leds[62] = CRGB(redval, greenval, blueval);
+
+  int e = 0;
+  e = m % 10;
+
+  if ((m >= 0 && m < 5) || m == 60)
+  {
+    setHour(h);
+    if (h == 1)
+    {
+      leds[56] = CRGB::Black;
+    }
+    leds[31] = CRGB(redval, greenval, blueval);
+    leds[12] = CRGB(redval, greenval, blueval);
+    leds[10] = CRGB(redval, greenval, blueval);
+  }
+
+  if (m >= 5 && m < 10)
+  {
+    setHour(h);
+    displayFive();
+    displayPast();
+  }
+
+  if (m >= 10 && m < 15)
+  {
+    setHour(h);
+    displayTen();
+    displayPast();
+  }
+
+  if (m >= 15 && m < 20)
+  {
+    setHour(h);
+    displayQuarter();
+    displayPast();
+  }
+
+  if (m >= 20 && m < 25)
+  {
+    setHour(h);
+    displayTwenty();
+    displayPast();
+  }
+
+  if (m >= 25 && m < 30)
+  {
+    setHour(h);
+    displayFive();
+    displayTwenty();
+    displayPast();
+  }
+
+  if (m >= 30 && m < 35)
+  {
+    setHour(h + 1);
+    //HALB (half past)
+    leds[107] = CRGB(redval, greenval, blueval);
+    leds[97] = CRGB(redval, greenval, blueval);
+    leds[86] = CRGB(redval, greenval, blueval);
+    leds[77] = CRGB(redval, greenval, blueval);
+  }
+
+  if (m >= 35 && m < 40)
+  {
+    setHour(h + 1);
+    displayFive();
+    displayTwenty();
+    displayTo();
+  }
+
+  if (m >= 40 && m < 45)
+  {
+    setHour(h + 1);
+    displayTwenty();
+    displayTo();
+  }
+
+  if (m >= 45 && m < 50)
+  {
+    setHour(h + 1);
+    displayQuarter();
+    displayTo();
+  }
+
+  if (m >= 50 && m < 55)
+  {
+    setHour(h + 1);
+    displayTen();
+    displayTo();
+  }
+
+  if (m >= 55 && m < 60)
+  {
+    setHour(h + 1);
+    displayFive();
+    displayTo();
+  }
+
+  if (e >= 5)
+  {
+    e = e - 5;
+  }
+
+  switch (e) {   // Set corner LEDs (minute indicators)
+    case 1:
+      leds[102] = CRGB(redval, greenval, blueval);
+      break;
+    case 2:
+      leds[102] = CRGB(redval, greenval, blueval);
+      leds[0] = CRGB(redval, greenval, blueval);
+      break;
+    case 3:
+      leds[102] = CRGB(redval, greenval, blueval);
+      leds[0] = CRGB(redval, greenval, blueval);
+      leds[113] = CRGB(redval, greenval, blueval);
+      break;
+    case 4:
+      leds[102] = CRGB(redval, greenval, blueval);
+      leds[0] = CRGB(redval, greenval, blueval);
+      leds[113] = CRGB(redval, greenval, blueval);
+      leds[11] = CRGB(redval, greenval, blueval);
+      break;
+  }
+  // No FastLED.show() or delay() - caller will show after applying effects
+}
+
 
 void setHour(int h)  // Set hours (convert 24h to 12h format)
 {

@@ -148,8 +148,12 @@ void loop() {
   
   // Update clock display or display-mode (unless a system animation is playing)
   if (!isAnimationPlaying()) {
-    // Mode: Rainbow (visual override)
+    // Mode: Rainbow (first set time words, then apply rainbow)
     if (config.display.displayMode == DISPLAY_RAINBOW) {
+      // Set which LEDs should be lit based on time (but don't show yet)
+      redval = 255; greenval = 255; blueval = 255; // temp white for word detection
+      setMinutesNoShow(minuten, stunden);
+      // Apply rainbow effect to lit LEDs
       animationRainbowMode();
     }
     // Mode: DayColorCycle (change base color according to time, then draw words)

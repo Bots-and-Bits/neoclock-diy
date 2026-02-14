@@ -56,9 +56,9 @@ void handleGetConfig(AsyncWebServerRequest *request) {
   doc["display"]["displayMode"] = config.display.displayMode;
   doc["display"]["modeSpeed"] = config.display.modeSpeed;
   doc["display"]["modeIntensity"] = config.display.modeIntensity;
-  doc["display"]["color2"]["r"] = config.display.color2R;
-  doc["display"]["color2"]["g"] = config.display.color2G;
-  doc["display"]["color2"]["b"] = config.display.color2B;
+  doc["display"]["color2R"] = config.display.color2R;
+  doc["display"]["color2G"] = config.display.color2G;
+  doc["display"]["color2B"] = config.display.color2B;
   doc["display"]["dayCycleHours"] = config.display.dayCycleHours;
   
   // Time settings
@@ -291,7 +291,9 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       String newTZ = doc["time"]["timezone"].as<String>();
       newTZ.toCharArray(config.time.timezone, sizeof(config.time.timezone));
       if (oldTZ != newTZ) {
-        needsRestart = true;  // Timezone change requires restart
+        // Update timezone immediately (no restart needed with ezTime)
+        myTZ.setLocation(config.time.timezone);
+        Serial.printf("🌍 Timezone changed to: %s\n", config.time.timezone);
       }
     }
     if (!doc["time"]["ntpServer"].isNull()) {
@@ -302,18 +304,10 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       // Store if you have this field - currently not used
     }
     
-    // Save immediately if timezone changed (requires restart), otherwise defer save
-    if (needsRestart) {
-      saveConfigImmediate();
-    } else {
-      markConfigDirty();
-    }
+    // Defer save to reduce flash wear
+    markConfigDirty();
     
-    String response = "{\"success\":true";
-    if (needsRestart) {
-      response += ",\"restart\":true";
-    }
-    response += "}";
+    String response = "{\"success\":true}";
     
     request->send(200, "application/json", response);
   }
