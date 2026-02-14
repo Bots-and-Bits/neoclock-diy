@@ -383,7 +383,7 @@ void animationWiFiConnected(IPAddress ip) {
   
   delay(500);
   clearAllLEDs();
-  
+
   // Display IP address using word clock!
   // Example: 192.168.1.100
   // Show: "1 9 2" [DOT] "1 6 8" [DOT] "1" [DOT] "1 0 0"
@@ -420,6 +420,39 @@ void animationWiFiConnected(IPAddress ip) {
   
   clearAllLEDs();
   FastLED.setBrightness(config.display.brightness);
+}
+
+// Non-blocking rainbow visual mode (uses config.display.modeSpeed)
+void animationRainbowMode() {
+  unsigned long now = millis();
+  unsigned long msPerStep = map(config.display.modeSpeed, 0, 255, 1000, 10); // low speed -> long step
+
+  // Advance hue based on time and speed
+  uint8_t hueBase = (uint8_t)((now / msPerStep) & 0xFF);
+
+  // Use global brightness setting
+  FastLED.setBrightness(config.display.brightness);
+
+  for (int i = 0; i < LED_COUNT; i++) {
+    leds[i] = CHSV(hueBase + (i * 256 / LED_COUNT), 255, 255);
+  }
+  FastLED.show();
+}
+
+// Compute a color based on time for DayColorCycle
+CRGB getDayCycleColor(int hour, int minute) {
+  // Determine fraction of cycle (0..1)
+  float h = hour + minute / 60.0;
+  float span = (config.display.dayCycleHours == 12) ? 12.0f : 24.0f;
+  float frac = fmod(h, span) / span; // 0..1
+
+  // Map fraction to hue (0..255) - full color spectrum over day
+  uint8_t hue = (uint8_t)(frac * 255.0);
+  uint8_t sat = 255;  // Full saturation for vivid colors
+  uint8_t val = 255;  // Full value, brightness controlled separately
+
+  CRGB c = CHSV(hue, sat, val);
+  return c;
 }
 
 // ============= MASTER ANIMATION CONTROLLER =============
@@ -505,4 +538,66 @@ bool isAnimationPlaying() {
 void showWiFiConnected(IPAddress ip) {
   stopAnimation();
   animationWiFiConnected(ip);
+}
+
+// ============= ADDITIONAL DISPLAY MODES =============
+
+// Ambient Pulse: gentle breathing effect on the word clock
+void animationAmbientPulse(int hour, int minute) {
+  // Use a sine wave to create a gentle pulse
+  unsigned long now = millis();
+  float breath = (sin(now / 1000.0) + 1.0) / 2.0; // 0..1
+  
+  // Set word clock as normal
+  redval = config.display.colorR;
+  greenval = config.display.colorG;
+  blueval = config.display.colorB;
+  setMinutes(minute, hour);
+  
+  // Apply pulsing brightness
+  uint8_t minBright = map(config.display.modeIntensity, 0, 255, 10, 50);
+  uint8_t maxBright = config.display.brightness;
+  uint8_t pulseBright = minBright + (uint8_t)((maxBright - minBright) * breath);
+  
+  FastLED.setBrightness(pulseBright);
+  FastLED.show();
+}
+
+// Smooth Gradient: blend between primary and secondary color
+void animationSmoothGradient(int hour, int minute) {
+  unsigned long now = millis();
+  unsigned long msPerCycle = map(config.display.modeSpeed, 0, 255, 10000, 500); // slow to fast
+  
+  // Compute blend factor (0..1)
+  float blend = (sin((now % msPerCycle) * TWO_PI / msPerCycle) + 1.0) / 2.0;
+  
+  // Blend between color1 (config.display.color*) and color2 (config.display.color2*)
+  uint8_t r = config.display.colorR + (uint8_t)((config.display.color2R - config.display.colorR) * blend);
+  uint8_t g = config.display.colorG + (uint8_t)((config.display.color2G - config.display.colorG) * blend);
+  uint8_t b = config.display.colorB + (uint8_t)((config.display.color2B - config.display.colorB) * blend);
+  
+  redval = r;
+  greenval = g;
+  blueval = b;
+  setMinutes(minute, hour);
+  
+  FastLED.setBrightness(config.display.brightness);
+  FastLED.show();
+}
+
+// Fire Flicker: warm color with subtle random flicker effect
+void animationFireFlicker(int hour, int minute) {
+  // Set word clock as normal with warm colors
+  redval = config.display.colorR;
+  greenval = config.display.colorG;
+  blueval = config.display.colorB;
+  setMinutes(minute, hour);
+  
+  // Apply random flicker based on modeSpeed (higher speed = more flicker)
+  uint8_t flickerAmount = map(config.display.modeSpeed, 0, 255, 5, 40);
+  int8_t flicker = random(-flickerAmount, flickerAmount);
+  int brightAdjust = constrain(config.display.brightness + flicker, 10, 255);
+  
+  FastLED.setBrightness(brightAdjust);
+  FastLED.show();
 }

@@ -30,4 +30,11 @@ void stopAnimation();
 bool isAnimationPlaying();
 void showWiFiConnected(IPAddress ip);
 
+// Display mode helpers
+void animationRainbowMode();                      // non-blocking rainbow mode
+CRGB getDayCycleColor(int hour, int minute);     // compute color for DayColorCycle (returns CRGB)
+void animationAmbientPulse(int hour, int minute); // gentle breathing effect
+void animationSmoothGradient(int hour, int minute); // blend between two colors
+void animationFireFlicker(int hour, int minute);  // warm flicker effect
+
 #endif  // ANIMATIONS_H

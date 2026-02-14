@@ -146,10 +146,40 @@ void loop() {
     years = myTZ.year();
   }
   
-  // Update clock display (unless animation is playing)
+  // Update clock display or display-mode (unless a system animation is playing)
   if (!isAnimationPlaying()) {
-    setMinutes(minuten, stunden);
-    applyBrightnessSettings();
+    // Mode: Rainbow (visual override)
+    if (config.display.displayMode == DISPLAY_RAINBOW) {
+      animationRainbowMode();
+    }
+    // Mode: DayColorCycle (change base color according to time, then draw words)
+    else if (config.display.displayMode == DISPLAY_DAY_CYCLE) {
+      CRGB c = getDayCycleColor(stunden, minuten);
+      redval = c.r;
+      greenval = c.g;
+      blueval = c.b;
+      setMinutes(minuten, stunden);
+      applyBrightnessSettings();
+      FastLED.show();
+    }
+    // Mode: Ambient Pulse (gentle brightness variation)
+    else if (config.display.displayMode == DISPLAY_AMBIENT_PULSE) {
+      animationAmbientPulse(stunden, minuten);
+    }
+    // Mode: Smooth Gradient (blend between two colors)
+    else if (config.display.displayMode == DISPLAY_GRADIENT) {
+      animationSmoothGradient(stunden, minuten);
+    }
+    // Default: static word-clock display (uses redval/greenval/blueval from config)
+    else {
+      // Ensure base color matches configured static color
+      redval = config.display.colorR;
+      greenval = config.display.colorG;
+      blueval = config.display.colorB;
+      setMinutes(minuten, stunden);
+      applyBrightnessSettings();
+      FastLED.show();
+    }
   }
   
   // Periodic config save (write-through cache)

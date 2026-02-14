@@ -50,6 +50,16 @@ void handleGetConfig(AsyncWebServerRequest *request) {
   doc["display"]["color"]["r"] = config.display.colorR;
   doc["display"]["color"]["g"] = config.display.colorG;
   doc["display"]["color"]["b"] = config.display.colorB;
+
+  // Display mode info (provide both legacy `mode` and new `displayMode` keys)
+  doc["display"]["mode"] = config.display.displayMode;
+  doc["display"]["displayMode"] = config.display.displayMode;
+  doc["display"]["modeSpeed"] = config.display.modeSpeed;
+  doc["display"]["modeIntensity"] = config.display.modeIntensity;
+  doc["display"]["color2"]["r"] = config.display.color2R;
+  doc["display"]["color2"]["g"] = config.display.color2G;
+  doc["display"]["color2"]["b"] = config.display.color2B;
+  doc["display"]["dayCycleHours"] = config.display.dayCycleHours;
   
   // Time settings
   doc["time"]["timezone"] = config.time.timezone;
@@ -218,7 +228,7 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     
     bool needsRestart = false;
     
-    // Display settings
+      // Display settings
     if (!doc["display"]["brightness"].isNull()) {
       config.display.brightness = doc["display"]["brightness"];
     }
@@ -245,6 +255,34 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     if (!doc["display"]["color"]["b"].isNull()) {
       config.display.colorB = doc["display"]["color"]["b"];
       blueval = config.display.colorB;
+    }
+
+    // New: display mode & parameters
+    if (!doc["display"]["mode"].isNull()) {
+      config.display.displayMode = doc["display"]["mode"];
+    }
+    // Accept either `display.mode` or `display.displayMode` from clients
+    if (!doc["display"]["displayMode"].isNull()) {
+      config.display.displayMode = doc["display"]["displayMode"];
+    }
+    if (!doc["display"]["modeSpeed"].isNull()) {
+      config.display.modeSpeed = doc["display"]["modeSpeed"];
+    }
+    if (!doc["display"]["modeIntensity"].isNull()) {
+      config.display.modeIntensity = doc["display"]["modeIntensity"];
+    }
+    if (!doc["display"]["color2"]["r"].isNull()) {
+      config.display.color2R = doc["display"]["color2"]["r"];
+    }
+    if (!doc["display"]["color2"]["g"].isNull()) {
+      config.display.color2G = doc["display"]["color2"]["g"];
+    }
+    if (!doc["display"]["color2"]["b"].isNull()) {
+      config.display.color2B = doc["display"]["color2"]["b"];
+    }
+    if (!doc["display"]["dayCycleHours"].isNull()) {
+      uint8_t v = doc["display"]["dayCycleHours"];
+      config.display.dayCycleHours = (v == 12) ? 12 : 24;
     }
     
     // Time settings
@@ -307,6 +345,39 @@ void handleUpdateConfig(AsyncWebServerRequest *request) {
   }
   if (request->hasParam("colorB", true)) {
     config.display.colorB = request->getParam("colorB", true)->value().toInt();
+    changed = true;
+  }
+  if (request->hasParam("mode", true)) {
+    config.display.displayMode = request->getParam("mode", true)->value().toInt();
+    changed = true;
+  }
+  if (request->hasParam("displayMode", true)) {
+    config.display.displayMode = request->getParam("displayMode", true)->value().toInt();
+    changed = true;
+  }
+  if (request->hasParam("modeSpeed", true)) {
+    config.display.modeSpeed = request->getParam("modeSpeed", true)->value().toInt();
+    changed = true;
+  }
+  if (request->hasParam("modeIntensity", true)) {
+    config.display.modeIntensity = request->getParam("modeIntensity", true)->value().toInt();
+    changed = true;
+  }
+  if (request->hasParam("color2R", true)) {
+    config.display.color2R = request->getParam("color2R", true)->value().toInt();
+    changed = true;
+  }
+  if (request->hasParam("color2G", true)) {
+    config.display.color2G = request->getParam("color2G", true)->value().toInt();
+    changed = true;
+  }
+  if (request->hasParam("color2B", true)) {
+    config.display.color2B = request->getParam("color2B", true)->value().toInt();
+    changed = true;
+  }
+  if (request->hasParam("dayCycleHours", true)) {
+    int v = request->getParam("dayCycleHours", true)->value().toInt();
+    config.display.dayCycleHours = (v == 12) ? 12 : 24;
     changed = true;
   }
   
@@ -416,8 +487,32 @@ void handleDisplayUpdate(AsyncWebServerRequest *request, uint8_t *data, size_t l
     greenval = config.display.colorG;
     blueval = config.display.colorB;
   }
-  
-  // Apply changes immediately
+
+  // Update display mode parameters (instant preview)
+  if (doc.containsKey("mode")) {
+    config.display.displayMode = doc["mode"];
+  }
+  if (doc.containsKey("modeSpeed")) {
+    config.display.modeSpeed = doc["modeSpeed"];
+  }
+  if (doc.containsKey("modeIntensity")) {
+    config.display.modeIntensity = doc["modeIntensity"];
+  }
+  if (doc.containsKey("color2") && doc["color2"].is<JsonObject>()) {
+    JsonObject c2 = doc["color2"].as<JsonObject>();
+    config.display.color2R = c2["r"] | config.display.color2R;
+    config.display.color2G = c2["g"] | config.display.color2G;
+    config.display.color2B = c2["b"] | config.display.color2B;
+  }
+  if (doc.containsKey("dayCycleHours")) {
+    uint8_t v = doc["dayCycleHours"];
+    config.display.dayCycleHours = (v == 12) ? 12 : 24;
+  }
+
+  // Mark for deferred save (no immediate flash write)
+  markConfigDirty();
+
+  // Apply changes immediately for visual feedback; actual rendering handled by main loop/animation
   FastLED.show();
   
   request->send(200, "application/json", "{\"success\":true}");

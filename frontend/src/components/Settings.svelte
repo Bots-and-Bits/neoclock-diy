@@ -167,6 +167,8 @@
   function updateColorFromHex() {
     const rgb = hexToRgb(colorHex);
     if (rgb && localConfig) {
+      // Prevent parent poll from overwriting while user picks a color
+      blockParentUpdates();
       localConfig.display.color.r = rgb.r;
       localConfig.display.color.g = rgb.g;
       localConfig.display.color.b = rgb.b;
@@ -191,7 +193,12 @@
           brightness: localConfig.display.brightness,
           r: localConfig.display.color.r,
           g: localConfig.display.color.g,
-          b: localConfig.display.color.b
+          b: localConfig.display.color.b,
+          mode: localConfig.display.displayMode,
+          modeSpeed: localConfig.display.modeSpeed,
+          modeIntensity: localConfig.display.modeIntensity,
+          color2: { r: localConfig.display.color2R, g: localConfig.display.color2G, b: localConfig.display.color2B },
+          dayCycleHours: localConfig.display.dayCycleHours
         })
       });
     } catch (error) {
@@ -202,7 +209,8 @@
   // Save full config immediately (for timezone, night mode, etc.)
   async function saveConfigImmediately() {
     if (!localConfig) return;
-    
+    // Prevent parent config polling from overwriting user edits while we save
+    blockParentUpdates();
     try {
       const response = await fetch('/api/config', {
         method: 'PUT',
@@ -271,6 +279,7 @@
             max="100"
             value={Math.round(localConfig.display.brightness / 2.55)}
             on:input={(e) => {
+              blockParentUpdates();
               localConfig.display.brightness = Math.round(e.target.value * 2.55);
             }}
             on:change={() => updateDisplayRealtime()}
@@ -302,6 +311,73 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Display modes -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Display Mode</label>
+          <div class="flex gap-3 items-center">
+            <select
+              bind:value={localConfig.display.displayMode}
+              on:click={() => blockParentUpdates()}
+              on:change={() => { updateDisplayRealtime(); saveConfigImmediately(); }}
+              class="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white"
+            >
+              <option value={0}>Static</option>
+              <option value={1}>Rainbow</option>
+              <option value={2}>Day Color Cycle</option>
+              <option value={3}>Ambient Pulse</option>
+              <option value={4}>Smooth Gradient</option>
+            </select>
+            <div class="text-xs text-gray-400">Mode applies instantly</div>
+          </div>
+
+          {#if localConfig.display.displayMode == 1}
+            <!-- Rainbow controls -->
+            <div class="mt-3">
+              <label class="block text-sm text-gray-400 mb-1">Rainbow Speed</label>
+              <input type="range" min="0" max="100" value={Math.round(localConfig.display.modeSpeed / 2.55)}
+                on:input={(e) => { blockParentUpdates(); localConfig.display.modeSpeed = Math.round(e.target.value * 2.55); updateDisplayRealtime(); }}
+                on:change={() => saveConfigImmediately()}
+                class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-600" />
+            </div>
+          {/if}
+
+          {#if localConfig.display.displayMode == 2}
+            <!-- DayColorCycle controls -->
+            <div class="mt-3">
+              <label class="block text-sm text-gray-400 mb-1">Cycle Length</label>
+              <select bind:value={localConfig.display.dayCycleHours} on:click={() => blockParentUpdates()} on:change={() => { updateDisplayRealtime(); saveConfigImmediately(); }} class="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                <option value={24}>24 hours</option>
+                <option value={12}>12 hours</option>
+              </select>
+              <div class="text-xs text-gray-400 mt-2">Color shifts through spectrum over {localConfig.display.dayCycleHours} hours</div>
+            </div>
+          {/if}
+
+          {#if localConfig.display.displayMode == 4}
+            <!-- Smooth Gradient: secondary color -->
+            <div class="mt-3 space-y-3">
+              <div>
+                <label class="block text-sm text-gray-400 mb-1">Secondary Color</label>
+                <div class="flex gap-3 items-center">
+                  <input type="color" value={rgbToHex(localConfig.display.color2R, localConfig.display.color2G, localConfig.display.color2B)}
+                    on:input={(e) => { blockParentUpdates(); const rgb = hexToRgb(e.target.value); if (rgb) { localConfig.display.color2R = rgb.r; localConfig.display.color2G = rgb.g; localConfig.display.color2B = rgb.b; updateDisplayRealtime(); } }}
+                    on:change={() => saveConfigImmediately()}
+                    class="w-12 h-12 rounded-lg cursor-pointer bg-gray-800 border-2 border-gray-600" />
+                  <div class="text-xs text-gray-400">RGB({localConfig.display.color2R}, {localConfig.display.color2G}, {localConfig.display.color2B})</div>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-gray-400 mb-1">Transition Speed</label>
+                <input type="range" min="0" max="100" value={Math.round(localConfig.display.modeSpeed / 2.55)}
+                  on:input={(e) => { blockParentUpdates(); localConfig.display.modeSpeed = Math.round(e.target.value * 2.55); updateDisplayRealtime(); }}
+                  on:change={() => saveConfigImmediately()}
+                  class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-600" />
+              </div>
+              <div class="text-xs text-gray-400">Smoothly blends between primary and secondary color</div>
+            </div>
+          {/if}
         </div>
 
         <div class="border-t border-gray-600 pt-4">
@@ -401,6 +477,7 @@
                 type="text"
                 bind:value={timezoneSearch}
                 on:input={() => { 
+                  blockParentUpdates();
                   showTimezoneDropdown = true;
                   if (localConfig) localConfig.time.timezone = timezoneSearch;
                 }}

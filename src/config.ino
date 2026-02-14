@@ -18,6 +18,15 @@ void loadConfig() {
   config.display.colorR = preferences.getUChar("color_r", 255);
   config.display.colorG = preferences.getUChar("color_g", 255);
   config.display.colorB = preferences.getUChar("color_b", 255);
+
+  // Display mode parameters
+  config.display.displayMode = preferences.getUChar("mode", DISPLAY_STATIC);
+  config.display.modeSpeed = preferences.getUChar("mode_spd", 128);
+  config.display.modeIntensity = preferences.getUChar("mode_int", 255);
+  config.display.color2R = preferences.getUChar("color2_r", 255);
+  config.display.color2G = preferences.getUChar("color2_g", 128);
+  config.display.color2B = preferences.getUChar("color2_b", 0);
+  config.display.dayCycleHours = preferences.getUChar("day_cycle", 24);
   
   // Load time settings
   preferences.getString("timezone", config.time.timezone, sizeof(config.time.timezone));
@@ -69,6 +78,15 @@ void saveConfig() {
   preferences.putUChar("color_r", config.display.colorR);
   preferences.putUChar("color_g", config.display.colorG);
   preferences.putUChar("color_b", config.display.colorB);
+
+  // Display mode parameters
+  preferences.putUChar("mode", config.display.displayMode);
+  preferences.putUChar("mode_spd", config.display.modeSpeed);
+  preferences.putUChar("mode_int", config.display.modeIntensity);
+  preferences.putUChar("color2_r", config.display.color2R);
+  preferences.putUChar("color2_g", config.display.color2G);
+  preferences.putUChar("color2_b", config.display.color2B);
+  preferences.putUChar("day_cycle", config.display.dayCycleHours);
   
   // Save time settings
   preferences.putString("timezone", config.time.timezone);
@@ -112,6 +130,9 @@ void printConfig() {
   Serial.printf("  Night Mode: %s\n", config.display.nightModeEnabled ? "Enabled" : "Disabled");
   Serial.printf("  Night Hours: %02d:00 - %02d:00\n", config.display.nightStartHour, config.display.nightEndHour);
   Serial.printf("  Color: RGB(%d, %d, %d)\n", config.display.colorR, config.display.colorG, config.display.colorB);
+  Serial.printf("  Mode: %d (speed=%d intensity=%d)\n", config.display.displayMode, config.display.modeSpeed, config.display.modeIntensity);
+  Serial.printf("  Secondary Color: RGB(%d, %d, %d)\n", config.display.color2R, config.display.color2G, config.display.color2B);
+  Serial.printf("  DayCycle hours: %d\n", config.display.dayCycleHours);
   
   Serial.println("\n[Time]");
   Serial.printf("  Timezone: %s\n", config.time.timezone);

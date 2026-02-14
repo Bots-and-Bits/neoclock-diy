@@ -66,7 +66,8 @@ void initSvelteStaticFiles(AsyncWebServer* server) {
   server->on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html_gz, index_html_gz_len);
     response->addHeader("Content-Encoding", "gzip");
-    response->addHeader("Cache-Control", "public, max-age=31536000");
+    // Prevent long-term caching of the HTML shell so clients always fetch the latest bundle references
+    response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     request->send(response);
   });
 
