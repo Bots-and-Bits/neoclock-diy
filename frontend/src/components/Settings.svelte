@@ -221,7 +221,8 @@
       const result = await response.json();
       
       if (result.success) {
-        dispatch('save');
+        // Don't dispatch 'save' - we already have the latest data in localConfig
+        // Fetching from parent would cause race conditions and overwrite edits
         
         if (result.restart) {
           message = 'Timezone changed - restarting device...';
@@ -242,7 +243,7 @@
     if (editingTimeoutId) clearTimeout(editingTimeoutId);
     editingTimeoutId = setTimeout(() => {
       userIsEditing = false;
-    }, 2000);
+    }, 5000); // 5 second block to prevent race conditions
   }
 </script>
 
