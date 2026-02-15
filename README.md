@@ -1,57 +1,34 @@
-# ESP32 Wordclock 3.1
+# Wordclock — developer README
 
-A modern, feature-rich wordclock built with ESP32 and WS2812B addressable LEDs. Displays time in German using illuminated words, with multiple display modes, timezone support, and a beautiful web-based control interface.
+Developer-focused overview — quick links:
 
-![Wordclock](https://img.shields.io/badge/Platform-ESP32-blue)
-![Language](https://img.shields.io/badge/Language-German-green)
-![Version](https://img.shields.io/badge/Version-3.1.0-orange)
+- User manual (non-technical): `USER_MANUAL.md`
+- API reference (endpoints + examples): `API_REFERENCE.md`
 
-## ✨ Features
+**Important:** the device only supports 2.4 GHz WiFi networks (do **not** use 5 GHz SSIDs).
 
-### Core Functionality
-- 🕐 **Word-based time display** in German
-- 🌍 **Automatic timezone & daylight saving** via NTP
-- 🎨 **5 display modes** with real-time switching
-- 🌙 **Night mode** with automatic brightness dimming
-- 📱 **Web interface** - mobile-friendly settings dashboard
-- 🔄 **OTA firmware updates** - upload new firmware via web UI
-- 📡 **WiFi provisioning** - easy setup via captive portal
+This repository contains:
+- ESP32 firmware (PlatformIO / Arduino)
+- Svelte + Vite frontend (embedded into firmware via svelteesp32)
 
-### Display Modes
+Quick developer commands:
 
-#### 🎯 Static (Default)
-Classic wordclock display with your chosen color.
+```bash
+# build frontend and embed into firmware header
+cd frontend && npm ci && npm run generate && cd ..
 
-#### 🌈 Rainbow
-Full spectrum rainbow animation across all LEDs.
-- **Control:** Adjust speed (slow → fast)
-- Perfect for parties or ambient lighting
+# build + upload firmware
+pio run --target upload
 
-#### 🌅 Day Color Cycle
-Colors gradually shift through the spectrum over 12 or 24 hours.
-- **Control:** Choose cycle length (12h or 24h)
-- Morning = warm colors, midday = cool colors, evening = warm again
+# monitor serial output
+pio device monitor --baud 115200
+```
 
-#### 💫 Ambient Pulse
-Gentle breathing effect - LEDs slowly pulse brighter and dimmer.
-- **Control:** Adjust pulse intensity
-- Creates a calm, relaxing atmosphere
+Notes:
+- The REST API reads/writes the in‑RAM `config` object; flash/NVS writes are deferred (see `markConfigDirty()`).
+- Hard-refresh browser (Cmd/Ctrl+Shift+R) after firmware + webapp updates.
 
-#### 🎨 Smooth Gradient
-Smoothly blends between two colors you select.
-- **Controls:** 
-  - Primary color (main LED color)
-  - Secondary color (gradient target)
-  - Transition speed (slow fade ↔ fast)
-- Beautiful color transitions throughout the day
-
-### Web Interface Features
-- 📊 **Real-time dashboard** - system status, WiFi info, uptime
-- ⚙️ **Settings management** - all settings auto-save instantly
-- 🎨 **Color picker** - choose any RGB color for static mode
-- 🌐 **WiFi setup** - scan networks, connect with saved passwords
-- 🔧 **Firmware updates** - upload `.bin` files with progress tracking
-- 🌍 **Timezone detection** - auto-detect or manually select from 100+ zones
+For non-technical users see `USER_MANUAL.md` (initial setup, UI walkthrough, troubleshooting).
 
 ## 🛠️ Hardware Requirements
 

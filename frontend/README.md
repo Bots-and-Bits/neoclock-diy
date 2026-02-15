@@ -2,6 +2,8 @@
 
 Modern Svelte-based web interface for the ESP32 Wordclock.
 
+Important: the Wordclock device supports **2.4 GHz WiFi only** — do not try to connect with a 5 GHz-only network.
+
 ## Features
 
 - 📡 **WiFi Provisioning** - Scan and connect to networks with password autofill
