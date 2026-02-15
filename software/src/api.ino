@@ -335,12 +335,15 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       // Store if you have this field - currently not used
     }
     
-    // Network settings
+    //Network settings
     if (!doc["network"]["hostname"].isNull()) {
       String newHostname = doc["network"]["hostname"].as<String>();
-      newHostname.toCharArray(config.network.hostname, sizeof(config.network.hostname));
-      Serial.printf("🌐 Hostname changed to: %s\n", config.network.hostname);
-      needsRestart = true;  // Hostname change requires restart
+      String oldHostname = String(config.network.hostname);
+      if (newHostname != oldHostname) {
+        newHostname.toCharArray(config.network.hostname, sizeof(config.network.hostname));
+        Serial.printf("🌐 Hostname changed to: %s\n", config.network.hostname);
+        needsRestart = true;  // Hostname change requires restart
+      }
     }
     if (!doc["network"]["apSSID"].isNull()) {
       String newAPSSID = doc["network"]["apSSID"].as<String>();
