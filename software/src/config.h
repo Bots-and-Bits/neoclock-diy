@@ -1,5 +1,5 @@
 // ============= CONFIGURATION HEADER =============
-// Structured configuration management for ESP32 Wordclock
+// Structured configuration management for ESP32 Neoclock
 // Uses Preferences library for persistent storage
 
 #ifndef CONFIG_H
@@ -48,9 +48,9 @@ struct TimeConfig {
 struct NetworkConfig {
   char ssid[64] = "";
   char password[64] = "";
-  char hostname[32] = "wordclock";
+  char hostname[32] = "neoclock";
   bool apMode = false;               // Access Point mode when no WiFi
-  char apSSID[32] = "Wordclock-Setup";
+  char apSSID[32] = "Neoclock-Setup";
   // No AP password - hotspot is always open for easy setup
 };
 

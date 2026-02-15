@@ -20,7 +20,7 @@
       ntpServer: 'pool.ntp.org',
       ntpInterval: 3600
     },
-    network: { ssid: '', hostname: 'wordclock', apSSID: 'Wordclock-Setup' },
+    network: { ssid: '', hostname: 'neoclock', apSSID: 'Neoclock-Setup' },
     firmware: { version: '4.0.0', updateURL: '', autoCheckUpdates: true }
   };
   let loading = true;
@@ -147,7 +147,7 @@
     <!-- Header -->
     <header class="mb-8">
       <h1 class="text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-        ✨ Wordclock
+        ✨ Neoclock
       </h1>
     </header>
 
@@ -240,7 +240,7 @@
 
     <!-- Footer -->
     <footer class="mt-8 text-center text-gray-500 text-sm">
-      <p>Wordclock</p>
+      <p>Neoclock</p>
       <p class="text-xs text-gray-600 mt-1">made by Bot and Bits</p>
     </footer>
   </div>
@@ -254,7 +254,7 @@
             <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500 mb-4"></div>
             <h2 class="text-xl font-bold mb-2">Reconnecting...</h2>
             <p class="text-gray-400 text-center mb-2">
-              Attempting to reconnect to Wordclock
+              Attempting to reconnect to Neoclock
             </p>
             <p class="text-sm text-gray-500">
               Attempt {reconnectAttempts} of {maxReconnectAttempts}
@@ -265,7 +265,7 @@
             </svg>
             <h2 class="text-xl font-bold mb-2 text-red-400">Connection Lost</h2>
             <p class="text-gray-400 text-center mb-4">
-              Unable to connect to Wordclock
+              Unable to connect to Neoclock
             </p>
             <button 
               on:click={() => { reconnectAttempts = 0; attemptReconnect(); }}

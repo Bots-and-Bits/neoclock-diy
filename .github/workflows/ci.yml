@@ -21,7 +21,7 @@ jobs:
           node-version: 18
 
       - name: Install frontend deps & generate embedded webapp
-        working-directory: frontend
+        working-directory: software/frontend
         run: |
           npm ci
           npm run generate
@@ -37,16 +37,17 @@ jobs:
           pip install -U platformio
 
       - name: Build firmware (PlatformIO)
+        working-directory: software
         run: pio run -e esp32dev
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
           name: firmware-bin
-          path: .pio/build/esp32dev/firmware.bin
+          path: software/.pio/build/esp32dev/firmware.bin
 
       - name: Upload generated webapp header
         uses: actions/upload-artifact@v4
         with:
           name: webapp-header
-          path: src/webapp.h
+          path: software/src/webapp.h

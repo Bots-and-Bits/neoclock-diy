@@ -48,11 +48,11 @@ void loadConfig() {
   preferences.getString("wifi_pass", config.network.password, sizeof(config.network.password));
   preferences.getString("hostname", config.network.hostname, sizeof(config.network.hostname));
   if (strlen(config.network.hostname) == 0) {
-    strcpy(config.network.hostname, "wordclock");
+    strcpy(config.network.hostname, "neoclock");
   }
   preferences.getString("ap_ssid", config.network.apSSID, sizeof(config.network.apSSID));
   if (strlen(config.network.apSSID) == 0) {
-    strcpy(config.network.apSSID, "Wordclock-Setup");
+    strcpy(config.network.apSSID, "Neoclock-Setup");
   }
   // AP password removed - hotspot is always open
   preferences.remove("ap_pass");  // Clean up old password from flash

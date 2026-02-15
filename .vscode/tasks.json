@@ -6,6 +6,9 @@
       "type": "shell",
       "command": "pio",
       "args": ["run", "-e", "esp32dev_ota", "-t", "upload"],
+      "options": {
+        "cwd": "${workspaceFolder}/software"
+      },
       "problemMatcher": ["$platformio"],
       "group": "build",
       "presentation": {
@@ -18,6 +21,9 @@
       "type": "shell",
       "command": "pio",
       "args": ["run", "-e", "esp32dev", "-t", "upload"],
+      "options": {
+        "cwd": "${workspaceFolder}/software"
+      },
       "problemMatcher": ["$platformio"],
       "group": {
         "kind": "build",

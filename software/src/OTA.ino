@@ -11,7 +11,7 @@ String getOTAPage() {
 <html>
 <head>
   <meta charset='UTF-8'>
-  <title>Wordclock OTA Update</title>
+  <title>Neoclock OTA Update</title>
   <style>
     body { font-family: Arial; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
     .container { max-width: 500px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 15px; }
@@ -23,7 +23,7 @@ String getOTAPage() {
 </head>
 <body>
   <div class="container">
-    <h1>🕐 Wordclock Firmware Update</h1>
+    <h1>🕐 Neoclock Firmware Update</h1>
     <p>Current version: )rawliteral";
   page += String(FIRMWARE_VERSION);
   page += R"rawliteral(</p>
@@ -64,10 +64,10 @@ String getOTAPage() {
 
 void setupOTA(AsyncWebServer &server) {
   // Setup mDNS
-  if (!MDNS.begin("wordclock")) {
+  if (!MDNS.begin("neoclock")) {
     Serial.println("⚠️  MDNS setup failed");
   } else {
-    Serial.println("✅ mDNS started: wordclock.local");
+    Serial.println("✅ mDNS started: neoclock.local");
   }
   
   // OTA page

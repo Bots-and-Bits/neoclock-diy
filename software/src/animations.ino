@@ -1,5 +1,5 @@
 // ============= LED ANIMATIONS =============
-// Visual feedback system for ESP32 Wordclock
+// Visual feedback system for ESP32 Neoclock
 // All animations use FastLED and existing word clock LED mappings
 
 #include "config.h"

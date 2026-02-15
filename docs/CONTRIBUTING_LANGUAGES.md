@@ -35,10 +35,10 @@ Lighting Pipeline (handles automatically):
 
 ### 1. Create Your Language Files
 
-Create two new files in `src/language/`:
+Create two new files in `software/src/language/`:
 
 ```cpp
-// src/language/lang_YOURCODE.h
+// software/src/language/lang_YOURCODE.h
 #ifndef LANG_YOURCODE_H
 #define LANG_YOURCODE_H
 
@@ -66,7 +66,7 @@ private:
 ```
 
 ```cpp
-// src/language/lang_YOURCODE.cpp
+// software/src/language/lang_YOURCODE.cpp
 #include "lang_YOURCODE.h"
 
 const char* LanguageYourName::getCode() {
@@ -228,7 +228,7 @@ void LanguageYourName::setActiveLEDs(int hours, int minutes, CRGB* leds) {
 Add your language to the language manager:
 
 ```cpp
-// src/language/language_manager.cpp
+// software/src/language/language_manager.cpp
 
 #include "lang_YOURCODE.h"  // Add this line
 
@@ -247,6 +247,9 @@ void LanguageManager::begin() {
 
 1. **Build and Upload:**
    ```bash
+   # Navigate to software directory
+   cd software
+   
    # Full build (if you also changed UI/docs)
    cd frontend && npm run generate && cd ..
    
@@ -267,8 +270,8 @@ void LanguageManager::begin() {
 
 3. **Test via API:**
    ```bash
-   curl http://wordclock.local/api/languages
-   curl -X POST http://wordclock.local/api/languages/set \
+   curl http://neoclock.local/api/languages
+   curl -X POST http://neoclock.local/api/languages/set \
      -H "Content-Type: application/json" \
      -d '{"language":"xx"}'
    ```
@@ -291,9 +294,9 @@ void LanguageManager::begin() {
 
 3. **Commit your changes:**
    ```bash
-   git add src/language/lang_YOURCODE.h
-   git add src/language/lang_YOURCODE.cpp
-   git add src/language/language_manager.cpp
+   git add software/src/language/lang_YOURCODE.h
+   git add software/src/language/lang_YOURCODE.cpp
+   git add software/src/language/language_manager.cpp
    git commit -m "Add [Your Language] language support"
    ```
 
@@ -305,7 +308,7 @@ void LanguageManager::begin() {
 
 ## 📚 Reference Implementation
 
-See `src/language/lang_german.cpp` for a complete, working example.
+See `software/src/language/lang_german.cpp` for a complete, working example.
 
 Key aspects to study:
 - LED index mappings

@@ -14,8 +14,11 @@ with open('/tmp/js.h', 'r') as f:
 # Generate the header file
 import os
 
+# Get the directory where this script is located (software/)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
 # Detect current asset filenames in frontend/dist/assets to create correct routes
-asset_dir = os.path.join(os.getcwd(), 'frontend', 'dist', 'assets')
+asset_dir = os.path.join(script_dir, 'frontend', 'dist', 'assets')
 css_asset = None
 js_asset = None
 try:
@@ -89,8 +92,9 @@ void initSvelteStaticFiles(AsyncWebServer* server) {
 #endif
 '''
 
-# Write to file
-with open('/Users/max/Documents/GitHub/Wordclock/src/webapp.h', 'w') as f:
+# Write to file - output to src/webapp.h (relative to script location)
+output_path = os.path.join(script_dir, 'src', 'webapp.h')
+with open(output_path, 'w') as f:
     f.write(output)
 
 print(f"webapp.h generated successfully (CSS: {css_route}, JS: {js_route})")

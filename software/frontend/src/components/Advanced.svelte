@@ -83,11 +83,38 @@
   }
 
   function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      message = 'Copied to clipboard!';
-      messageType = 'success';
-      setTimeout(() => { message = ''; }, 2000);
-    });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        message = 'Copied to clipboard!';
+        messageType = 'success';
+        setTimeout(() => { message = ''; }, 2000);
+      }).catch((err) => {
+        console.error('Failed to copy:', err);
+        message = 'Failed to copy to clipboard';
+        messageType = 'error';
+        setTimeout(() => { message = ''; }, 2000);
+      });
+    } else {
+      // Fallback for browsers without clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        message = 'Copied to clipboard!';
+        messageType = 'success';
+        setTimeout(() => { message = ''; }, 2000);
+      } catch (err) {
+        console.error('Fallback copy failed:', err);
+        message = 'Failed to copy to clipboard';
+        messageType = 'error';
+        setTimeout(() => { message = ''; }, 2000);
+      }
+      document.body.removeChild(textArea);
+    }
   }
 </script>
 
@@ -158,7 +185,7 @@
             id="hostname"
             type="text"
             bind:value={localConfig.network.hostname}
-            placeholder="wordclock"
+            placeholder="neoclock"
             class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
           />
           <p class="text-xs text-gray-500 mt-1">
@@ -174,7 +201,7 @@
             id="apSSID"
             type="text"
             bind:value={localConfig.network.apSSID}
-            placeholder="Wordclock-Setup"
+            placeholder="Neoclock-Setup"
             class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
           />
           <p class="text-xs text-gray-500 mt-1">
@@ -275,17 +302,6 @@
             {Math.round((status.system.freeHeap / status.system.heapSize) * 100)}%
           </div>
           <div class="text-xs text-gray-500">free</div>
-        </div>
-        
-        <div class="p-3 bg-gray-800/50 rounded-lg">
-          <div class="text-sm text-gray-400">Total LEDs</div>
-          <div class="text-xl font-bold text-purple-400">{status.display.leds || 115}</div>
-          <div class="text-xs text-gray-500">WS2812B addressable</div>
-        </div>
-        
-        <div class="p-3 bg-gray-800/50 rounded-lg">
-          <div class="text-sm text-gray-400">Firmware Version</div>
-          <div class="text-xl font-bold text-orange-400">{config.firmware.version}</div>
         </div>
       </div>
     </div>

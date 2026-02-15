@@ -54,7 +54,7 @@ void setupWebApp(AsyncWebServer &server) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wordclock Setup</title>
+  <title>Neoclock Setup</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -100,7 +100,7 @@ void setupWebApp(AsyncWebServer &server) {
 </head>
 <body>
   <div class="card">
-    <h1>🕐 Wordclock</h1>
+    <h1>🕐 Neoclock</h1>
     <div class="status">
       ✅ <strong>Firmware Running:</strong> Version )rawliteral" + String(FIRMWARE_VERSION) + R"rawliteral(
     </div>

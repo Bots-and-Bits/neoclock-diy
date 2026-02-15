@@ -34,7 +34,7 @@
   }
 
   async function restart() {
-    if (confirm('Restart the Wordclock? This will take about 10 seconds.')) {
+    if (confirm('Restart Neoclock? This will take about 10 seconds.')) {
       try {
         await fetch('/api/restart', { method: 'POST' });
         alert('Device restarting...');

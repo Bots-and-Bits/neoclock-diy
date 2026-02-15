@@ -1,6 +1,6 @@
-# Wordclock — User Manual
+# Neoclock — User Manual
 
-Quick, non-technical guide for first-time setup and daily use of the ESP32 Wordclock web app.
+Quick, non-technical guide for first-time setup and daily use of the ESP32 Neoclock web app.
 
 Important: this device only supports **2.4 GHz** WiFi networks — it will not connect to 5 GHz only SSIDs.
 
@@ -8,12 +8,12 @@ Important: this device only supports **2.4 GHz** WiFi networks — it will not c
 
 ## 1) First power‑on (first-time setup)
 
-1. Power the Wordclock. It will start in Access‑Point (AP) setup mode if no WiFi is configured.
-2. Connect a phone or laptop to the WiFi network named `Wordclock-Setup` (no password).
+1. Power the Neoclock. It will start in Access‑Point (AP) setup mode if no WiFi is configured.
+2. Connect a phone or laptop to the WiFi network named `Neoclock-Setup` (no password).
 3. Open a browser — the captive portal should open automatically. If not, go to `http://192.168.4.1`.
 4. Enter your home WiFi SSID and password and press **Connect**.
 5. The device will reboot and connect to your network. Note the IP shown on the screen or in the web UI.
-6. Open the web UI at `http://wordclock.local` or the IP address shown by the device.
+6. Open the web UI at `http://neoclock.local` or the IP address shown by the device.
 
 ---
 
@@ -56,7 +56,7 @@ Tip: if the dashboard is empty after a reboot, hard-refresh the page (Cmd/Ctrl+S
 
 ### WiFi
 - **Scan** available networks and connect.
-- **Hostname** — device name on your LAN (default `wordclock`).
+- **Hostname** — device name on your LAN (default `neoclock`).
 
 ### Firmware Updates
 
@@ -119,7 +119,7 @@ A: The primary color is always visible in Settings. The secondary color appears 
 Q: Why did my change disappear immediately?  
 A: The UI polls the device and may temporarily overwrite local edits — the UI blocks polling while you are actively editing for 5 seconds.
 
-Q: Can I control Wordclock remotely?  
+Q: Can I control Neoclock remotely?  
 A: Yes — use the REST API endpoints (GET/PUT `/api/config`, POST `/api/display`, etc.).
 
 ---
@@ -129,4 +129,4 @@ Open an issue on the GitHub repository with: device firmware version (bottom of 
 
 ---
 
-Enjoy your Wordclock — if anything is unclear, open an issue and I’ll help you get it running.
+Enjoy your Neoclock — if anything is unclear, open an issue and I'll help you get it running.

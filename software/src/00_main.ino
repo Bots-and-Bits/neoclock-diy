@@ -1,4 +1,4 @@
-// ============= ESP32 WORDCLOCK FIRMWARE 4.0 =============
+// ============= ESP32 NEOCLOCK FIRMWARE 4.0 =============
 // Modern architecture with ESPAsync Web Server, ezTime DST, and REST API
 // 
 // Features:
@@ -84,7 +84,7 @@ void setup() {
   
   Serial.println("\n\n");
   Serial.println("========================================");
-  Serial.println("   ESP32 WORDCLOCK FIRMWARE v" + String(FIRMWARE_VERSION));
+  Serial.println("   ESP32 NEOCLOCK FIRMWARE v" + String(FIRMWARE_VERSION));
   Serial.println("========================================\n");
   
   // Initialize watchdog
@@ -124,7 +124,7 @@ void setup() {
   // Setup web server and API
   setupWebServer();
   
-  Serial.println("\n✅ Wordclock ready!");
+  Serial.println("\n✅ Neoclock ready!");
   Serial.println("========================================\n");
   
   esp_task_wdt_reset();

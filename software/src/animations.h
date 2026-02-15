@@ -1,5 +1,5 @@
 // ============= ANIMATIONS HEADER =============
-// LED Animation system for ESP32 Wordclock
+// LED Animation system for ESP32 Neoclock
 // Provides visual feedback for system states
 
 #ifndef ANIMATIONS_H
