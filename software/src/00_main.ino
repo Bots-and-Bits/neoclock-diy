@@ -117,6 +117,7 @@ void setup() {
   
   // Setup time with ezTime
   if (WiFi.isConnected()) {
+    setDebug(INFO);  // Enable ezTime debug output
     setupTime();
   }
   
@@ -266,9 +267,19 @@ void setupTime() {
   Serial.println("✅ NTP synced!");
   Serial.printf("📅 UTC Time: %s\n", UTC.dateTime().c_str());
   
-  // Set timezone
-  myTZ.setLocation(config.time.timezone);
-  Serial.printf("🌍 Timezone: %s\n", config.time.timezone);
+  // Set timezone with error checking and retry
+  Serial.printf("🌍 Setting timezone: %s\n", config.time.timezone);
+  if (!myTZ.setLocation(config.time.timezone)) {
+    Serial.println("⚠️  Timezone lookup failed, retrying in 2 seconds...");
+    delay(2000);
+    if (!myTZ.setLocation(config.time.timezone)) {
+      Serial.println("❌ Timezone lookup failed again, using cached/UTC");
+    } else {
+      Serial.println("✅ Timezone set successfully on retry");
+    }
+  } else {
+    Serial.println("✅ Timezone set successfully");
+  }
   Serial.printf("🕐 Local Time: %s\n", myTZ.dateTime().c_str());
   
   lastNTPSync = millis();

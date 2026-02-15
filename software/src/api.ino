@@ -317,14 +317,22 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     }
     
     // Time settings
+    bool timezoneError = false;
     if (!doc["time"]["timezone"].isNull()) {
       String oldTZ = String(config.time.timezone);
       String newTZ = doc["time"]["timezone"].as<String>();
       newTZ.toCharArray(config.time.timezone, sizeof(config.time.timezone));
       if (oldTZ != newTZ) {
         // Update timezone immediately (no restart needed with ezTime)
-        myTZ.setLocation(config.time.timezone);
-        Serial.printf("🌍 Timezone changed to: %s\n", config.time.timezone);
+        Serial.printf("🌍 Changing timezone to: %s\n", config.time.timezone);
+        if (!myTZ.setLocation(config.time.timezone)) {
+          Serial.println("❌ Timezone lookup failed (network/server issue)");
+          timezoneError = true;
+          // Revert to old timezone
+          oldTZ.toCharArray(config.time.timezone, sizeof(config.time.timezone));
+        } else {
+          Serial.printf("✅ Timezone changed successfully to: %s\n", config.time.timezone);
+        }
       }
     }
     if (!doc["time"]["ntpServer"].isNull()) {
@@ -368,6 +376,9 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     String response = "{\"success\":true";
     if (needsRestart) {
       response += ",\"restart\":true";
+    }
+    if (timezoneError) {
+      response += ",\"warning\":\"Timezone update failed. Check internet connection and try again.\"";
     }
     response += "}";
     

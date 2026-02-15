@@ -227,7 +227,7 @@
         {#if currentView === 'dashboard'}
           <Dashboard {config} />
         {:else if currentView === 'settings'}
-          <Settings {config} />
+          <Settings {config} {wifiStatus} />
         {:else if currentView === 'wifi'}
           <WiFiSetup on:connected={fetchWiFiStatus} />
         {:else if currentView === 'firmware'}

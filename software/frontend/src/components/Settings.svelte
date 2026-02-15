@@ -4,6 +4,7 @@
   const dispatch = createEventDispatcher();
   
   export let config;
+  export let wifiStatus = { connected: false };  // WiFi connection status
   
   let localConfig = null;
   let message = '';
@@ -219,6 +220,14 @@
       if (result.success) {
         // Don't dispatch 'save' - we already have the latest data in localConfig
         // Fetching from parent would cause race conditions and overwrite edits
+        
+        if (result.warning) {
+          message = result.warning;
+          messageType = 'error';
+          setTimeout(() => {
+            message = '';
+          }, 8000);
+        }
         
         if (result.restart) {
           message = 'Timezone changed - restarting device...';
@@ -527,6 +536,13 @@
     <div class="bg-gray-700/30 rounded-lg p-6 border border-gray-600">
       <h3 class="text-xl font-semibold mb-4 text-blue-400">Time Settings</h3>
       
+      {#if !wifiStatus.connected}
+        <div class="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-4">
+          <p class="text-yellow-400 text-sm">
+            ⚠️ Timezone settings require internet connection. Please connect to WiFi first.
+          </p>
+        </div>
+      {:else}
       <div class="space-y-4">
         <div class="relative">
           <label for="timezone" class="block text-sm font-medium text-gray-300 mb-2">
@@ -581,6 +597,7 @@
           </p>
         </div>
       </div>
+      {/if}
     </div>
 
     <!-- Language Settings -->
