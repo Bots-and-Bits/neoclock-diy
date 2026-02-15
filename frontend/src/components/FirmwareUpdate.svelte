@@ -220,10 +220,10 @@
     
     <div class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-gray-300 mb-2">
+        <label for="firmwareFile" class="block text-sm font-medium text-gray-300 mb-2">
           Select Firmware File (.bin)
         </label>
-        <input
+        <input id="firmwareFile"
           bind:this={fileInput}
           on:change={handleFileSelect}
           type="file"

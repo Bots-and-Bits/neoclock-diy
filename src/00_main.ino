@@ -45,9 +45,9 @@ int redval = 255;
 int greenval = 255;
 int blueval = 255;
 
-int stunden;
-int minuten;
-int sekunden;
+int hours;
+int minutes;
+int seconds;
 int days;
 int months;
 int years;
@@ -138,9 +138,9 @@ void loop() {
   // Get current time
   if (WiFi.isConnected() && timeStatus() != timeNotSet) {
     // Use ezTime (with automatic DST)
-    stunden = myTZ.hour();
-    minuten = myTZ.minute();
-    sekunden = myTZ.second();
+    hours = myTZ.hour();
+    minutes = myTZ.minute();
+    seconds = myTZ.second();
     days = myTZ.day();
     months = myTZ.month();
     years = myTZ.year();
@@ -152,27 +152,27 @@ void loop() {
     if (config.display.displayMode == DISPLAY_RAINBOW) {
       // Set which LEDs should be lit based on time (but don't show yet)
       redval = 255; greenval = 255; blueval = 255; // temp white for word detection
-      setMinutesNoShow(minuten, stunden);
+      setMinutesNoShow(minutes, hours);
       // Apply rainbow effect to lit LEDs
       animationRainbowMode();
     }
     // Mode: DayColorCycle (change base color according to time, then draw words)
     else if (config.display.displayMode == DISPLAY_DAY_CYCLE) {
-      CRGB c = getDayCycleColor(stunden, minuten);
+      CRGB c = getDayCycleColor(hours, minutes);
       redval = c.r;
       greenval = c.g;
       blueval = c.b;
-      setMinutes(minuten, stunden);
+      setMinutes(minutes, hours);
       applyBrightnessSettings();
       FastLED.show();
     }
     // Mode: Ambient Pulse (gentle brightness variation)
     else if (config.display.displayMode == DISPLAY_AMBIENT_PULSE) {
-      animationAmbientPulse(stunden, minuten);
+      animationAmbientPulse(hours, minutes);
     }
     // Mode: Smooth Gradient (blend between two colors)
     else if (config.display.displayMode == DISPLAY_GRADIENT) {
-      animationSmoothGradient(stunden, minuten);
+      animationSmoothGradient(hours, minutes);
     }
     // Default: static word-clock display (uses redval/greenval/blueval from config)
     else {
@@ -180,7 +180,7 @@ void loop() {
       redval = config.display.colorR;
       greenval = config.display.colorG;
       blueval = config.display.colorB;
-      setMinutes(minuten, stunden);
+      setMinutes(minutes, hours);
       applyBrightnessSettings();
       FastLED.show();
     }
@@ -363,7 +363,7 @@ void handleWiFiReconnect() {
 
 void applyBrightnessSettings() {
   if (config.display.nightModeEnabled) {
-    int currentHour = stunden;
+    int currentHour = hours;
     bool isNightTime = false;
     
     if (config.display.nightStartHour > config.display.nightEndHour) {

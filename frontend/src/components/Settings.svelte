@@ -317,9 +317,9 @@
 
         <!-- Display modes -->
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">Display Mode</label>
+          <label for="displayMode" class="block text-sm font-medium text-gray-300 mb-2">Display Mode</label>
           <div class="flex gap-3 items-center">
-            <select
+            <select id="displayMode"
               bind:value={localConfig.display.displayMode}
               on:click={() => blockParentUpdates()}
               on:change={() => { updateDisplayRealtime(); saveConfigImmediately(); }}
@@ -337,8 +337,8 @@
           {#if localConfig.display.displayMode == 1}
             <!-- Rainbow controls -->
             <div class="mt-3">
-              <label class="block text-sm text-gray-400 mb-1">Rainbow Speed</label>
-              <input type="range" min="0" max="100" value={Math.round(localConfig.display.modeSpeed / 2.55)}
+              <label for="rainbowSpeed" class="block text-sm text-gray-400 mb-1">Rainbow Speed</label>
+              <input id="rainbowSpeed" type="range" min="0" max="100" value={Math.round(localConfig.display.modeSpeed / 2.55)}
                 on:input={(e) => { blockParentUpdates(); localConfig.display.modeSpeed = Math.round(e.target.value * 2.55); updateDisplayRealtime(); }}
                 on:change={() => saveConfigImmediately()}
                 class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-600" />
@@ -348,8 +348,8 @@
           {#if localConfig.display.displayMode == 2}
             <!-- DayColorCycle controls -->
             <div class="mt-3">
-              <label class="block text-sm text-gray-400 mb-1">Cycle Length</label>
-              <select bind:value={localConfig.display.dayCycleHours} on:click={() => blockParentUpdates()} on:change={() => { updateDisplayRealtime(); saveConfigImmediately(); }} class="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white">
+              <label for="dayCycleLength" class="block text-sm text-gray-400 mb-1">Cycle Length</label>
+              <select id="dayCycleLength" bind:value={localConfig.display.dayCycleHours} on:click={() => blockParentUpdates()} on:change={() => { updateDisplayRealtime(); saveConfigImmediately(); }} class="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white">
                 <option value={24}>24 hours</option>
                 <option value={12}>12 hours</option>
               </select>
@@ -361,9 +361,9 @@
             <!-- Smooth Gradient: secondary color -->
             <div class="mt-3 space-y-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
               <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Secondary Color (Gradient Target)</label>
+                <label for="secondaryColor" class="block text-sm font-medium text-gray-300 mb-1">Secondary Color (Gradient Target)</label>
                 <div class="flex gap-3 items-center">
-                  <input type="color" value={rgbToHex(localConfig.display.color2R, localConfig.display.color2G, localConfig.display.color2B)}
+                  <input id="secondaryColor" type="color" value={rgbToHex(localConfig.display.color2R, localConfig.display.color2G, localConfig.display.color2B)}
                     on:input={(e) => { blockParentUpdates(); const rgb = hexToRgb(e.target.value); if (rgb) { localConfig.display.color2R = rgb.r; localConfig.display.color2G = rgb.g; localConfig.display.color2B = rgb.b; updateDisplayRealtime(); } }}
                     on:change={() => saveConfigImmediately()}
                     class="w-12 h-12 rounded-lg cursor-pointer bg-gray-800 border-2 border-gray-600" />
@@ -371,8 +371,8 @@
                 </div>
               </div>
               <div>
-                <label class="block text-sm text-gray-400 mb-1">Transition Speed</label>
-                <input type="range" min="0" max="100" value={Math.round(localConfig.display.modeSpeed / 2.55)}
+                <label for="gradientTransitionSpeed" class="block text-sm text-gray-400 mb-1">Transition Speed</label>
+                <input id="gradientTransitionSpeed" type="range" min="0" max="100" value={Math.round(localConfig.display.modeSpeed / 2.55)}
                   on:input={(e) => { blockParentUpdates(); localConfig.display.modeSpeed = Math.round(e.target.value * 2.55); updateDisplayRealtime(); }}
                   on:change={() => saveConfigImmediately()}
                   class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-600" />

@@ -123,6 +123,16 @@ npm run build         # Build for production
 npm run generate      # Build + embed into ESP32 firmware
 ```
 
+### CI (GitHub Actions)
+
+A GitHub Actions workflow is included at `.github/workflows/ci.yml` and will:
+
+- build the frontend and embed `src/webapp.h` (`npm run generate`),
+- build the PlatformIO firmware (`pio run -e esp32dev`), and
+- upload artifacts (`firmware.bin` and `src/webapp.h`) for download from the Actions run.
+
+Trigger the workflow from the Actions tab or push a commit to run it.
+
 **Tech stack:** Svelte 4, Vite, Tailwind CSS
 
 ### Firmware (ESP32 C++)

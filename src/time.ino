@@ -402,7 +402,7 @@ void setHour(int h)  // Set hours (convert 24h to 12h format)
 
 void displayFive()  // "FÜNF" (five minutes)
 {
-  //Fünf
+  // 'FÜNF' (five) — German word used in display mapping
   leds[41] = CRGB(redval, greenval, blueval);
   leds[22] = CRGB(redval, greenval, blueval);
   leds[21] = CRGB(redval, greenval, blueval);
@@ -420,7 +420,7 @@ void displayTen()  // "ZEHN" (ten minutes)
 }
 void displayQuarter()  // "VIERTEL" (quarter)
 {
-  //Viertel
+  // 'VIERTEL' (quarter) — German word used in display mapping
   leds[64] = CRGB(redval, greenval, blueval);
   leds[59] = CRGB(redval, greenval, blueval);
   leds[44] = CRGB(redval, greenval, blueval);
@@ -433,7 +433,7 @@ void displayQuarter()  // "VIERTEL" (quarter)
 
 void displayTwenty()  // "ZWANZIG" (twenty minutes)
 {
-  //ZWANZIG
+  // 'ZWANZIG' (twenty) — German word used in display mapping
   leds[63] = CRGB(redval, greenval, blueval);
   leds[60] = CRGB(redval, greenval, blueval);
   leds[43] = CRGB(redval, greenval, blueval);
@@ -446,7 +446,7 @@ void displayTwenty()  // "ZWANZIG" (twenty minutes)
 void displayTo()  // "VOR" (to/before the hour)
 {
 
-  //VOR
+  // 'VOR' (to/before) — German word used in display mapping
 
   leds[45] = CRGB(redval, greenval, blueval);
   leds[38] = CRGB(redval, greenval, blueval);
@@ -455,7 +455,7 @@ void displayTo()  // "VOR" (to/before the hour)
 
 void displayPast()  // "NACH" (past the hour)
 {
-  //NACH
+  // 'NACH' (past/after) — German word used in display mapping
   leds[85] = CRGB(redval, greenval, blueval);
   leds[78] = CRGB(redval, greenval, blueval);
   leds[65] = CRGB(redval, greenval, blueval);
@@ -494,31 +494,31 @@ void dealwithnighttime()
   {
     if (temphourstart > temphourend)
     {
-      if (stunden >= temphourstart || stunden <= temphourend )
+    if (hours >= temphourstart || hours <= temphourend )
+    {
+      // Night mode brightness
+      if (hours != temphourstart && hours != temphourend)
       {
-        // Night mode brightness
-        if (stunden != temphourstart && stunden != temphourend)
-        {
-          nighttime = true;
-        }
+        nighttime = true;
+      }
 
-        if (stunden == temphourstart && minuten >= tempminstart)
-        {
-          nighttime = true;
-        }
-        if (stunden == temphourend && minuten <= tempminend)
-        {
-          nighttime = true;
-        }
+      if (hours == temphourstart && minutes >= tempminstart)
+      {
+        nighttime = true;
+      }
+      if (hours == temphourend && minutes <= tempminend)
+      {
+        nighttime = true;
+      }
       }
     }
 
     if (temphourstart == temphourend)
     {
-      if (stunden == temphourstart && stunden == temphourend)
+      if (hours == temphourstart && hours == temphourend)
       {
 
-        if (minuten >= tempminstart && minuten <= tempminend)
+        if (minutes >= tempminstart && minutes <= tempminend)
         {
           nighttime = true;
         }
@@ -528,18 +528,18 @@ void dealwithnighttime()
     if (temphourstart < temphourend)
     {
 
-      if (stunden >= temphourstart && stunden <= temphourend)
+if (hours >= temphourstart && hours <= temphourend)
       {
-        //Nacht
-        if (stunden != temphourstart && stunden != temphourend)
+        // Night (night mode)
+        if (hours != temphourstart && hours != temphourend)
         {
           nighttime = true;
         }
-        if (stunden == temphourstart && minuten >= tempminstart)
+        if (hours == temphourstart && minutes >= tempminstart)
         {
           nighttime = true;
         }
-        if (stunden == temphourend && minuten <= tempminend)
+        if (hours == temphourend && minutes <= tempminend)
         {
           nighttime = true;
         }
@@ -573,8 +573,8 @@ void dealwithnighttime()
 void updatetime()
 {
   DateTime now = rtc.now();
-  stunden = now.hour();
-  minuten = now.minute();
+  hours = now.hour();
+  minutes = now.minute();
   months = now.month();
   days = now.day();
   years   = now.year();
@@ -582,20 +582,20 @@ void updatetime()
   // No manual timezone offset needed - ezTime handles this
 
 
-  if (stunden < 12)
+  if (hours < 12)
   {
-    stunden = stunden + 24;
+    hours = hours + 24;
   }
-  if (stunden > 24)
+  if (hours > 24)
   {
-    stunden = stunden - 24;
+    hours = hours - 24;
   }
 
   dealwithnighttime();
 
-  if (stunden > 12)
+  if (hours > 12)
   {
-    stunden = stunden - 12;
+    hours = hours - 12;
   }
 
   //  Serial.print(years);
@@ -604,9 +604,9 @@ void updatetime()
   //  Serial.print('/');
   //  Serial.print(days, DEC);
   //  Serial.print(" (");
-  //  Serial.print(stunden);
+  //  Serial.print(hours);
   //  Serial.print(':');
-  //  Serial.print(minuten);
+  //  Serial.print(minutes);
   //  Serial.print(':');
   //  Serial.print(now.second(), DEC);
   //  Serial.print(")");

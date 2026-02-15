@@ -11,7 +11,7 @@
 //  ============= STATUS & INFO =============
 
 void handleGetStatus(AsyncWebServerRequest *request) {
-  StaticJsonDocument<512> doc;
+  DynamicJsonDocument doc(512);
   
   // System info
   doc["system"]["uptime"] = millis() / 1000;
@@ -37,7 +37,7 @@ void handleGetStatus(AsyncWebServerRequest *request) {
 }
 
 void handleGetConfig(AsyncWebServerRequest *request) {
-  StaticJsonDocument<1024> doc;  // Explicit size for nested structure
+  DynamicJsonDocument doc(1024);  // Explicit size for nested structure
   
   Serial.println("📋 /api/config requested");
   
@@ -96,17 +96,17 @@ void handleGetConfig(AsyncWebServerRequest *request) {
 // ============= TIME =============
 
 void handleGetTime(AsyncWebServerRequest *request) {
-  StaticJsonDocument<256> doc;
+  DynamicJsonDocument doc(256);
   
   // Format current time
   char timeStr[6];
-  snprintf(timeStr, sizeof(timeStr), "%02d:%02d", stunden, minuten);
+  snprintf(timeStr, sizeof(timeStr), "%02d:%02d", hours, minutes);
   doc["localTime"] = timeStr;
   
   doc["timezone"] = config.time.timezone;
-  doc["hour"] = stunden;
-  doc["minute"] = minuten;
-  doc["second"] = sekunden;
+  doc["hour"] = hours;
+  doc["minute"] = minutes;
+  doc["second"] = seconds;
   
   String response;
   serializeJson(doc, response);
@@ -116,7 +116,7 @@ void handleGetTime(AsyncWebServerRequest *request) {
 // ============= WIFI MANAGEMENT =============
 
 void handleWiFiStatus(AsyncWebServerRequest *request) {
-  StaticJsonDocument<256> doc;
+  DynamicJsonDocument doc(256);
   
   doc["connected"] = WiFi.isConnected();
   if (WiFi.isConnected()) {
@@ -166,7 +166,7 @@ void handleWiFiConnect(AsyncWebServerRequest *request, uint8_t *data, size_t len
   
   // Process when complete
   if (index + len == total) {
-    StaticJsonDocument<256> doc;
+    DynamicJsonDocument doc(256);
     DeserializationError error = deserializeJson(doc, wifiConnectBody);
     
     if (error || !doc["ssid"] || !doc["password"]) {
@@ -455,7 +455,7 @@ void handleDisplayTest(AsyncWebServerRequest *request) {
 
 void handleDisplayUpdate(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
   // Real-time display updates (no save, no animations)
-  StaticJsonDocument<256> doc;
+  DynamicJsonDocument doc(256);
   DeserializationError error = deserializeJson(doc, data, len);
   
   if (error) {
@@ -464,7 +464,7 @@ void handleDisplayUpdate(AsyncWebServerRequest *request, uint8_t *data, size_t l
   }
   
   // Update brightness if provided
-  if (doc.containsKey("brightness")) {
+  if (!doc["brightness"].isNull()) {
     int brightness = doc["brightness"];
     if (brightness >= 0 && brightness <= 255) {
       config.display.brightness = brightness;
@@ -473,7 +473,7 @@ void handleDisplayUpdate(AsyncWebServerRequest *request, uint8_t *data, size_t l
   }
   
   // Update color if provided
-  if (doc.containsKey("r") && doc.containsKey("g") && doc.containsKey("b")) {
+  if (!doc["r"].isNull() && !doc["g"].isNull() && !doc["b"].isNull()) {
     config.display.colorR = doc["r"];
     config.display.colorG = doc["g"];
     config.display.colorB = doc["b"];
@@ -483,22 +483,22 @@ void handleDisplayUpdate(AsyncWebServerRequest *request, uint8_t *data, size_t l
   }
 
   // Update display mode parameters (instant preview)
-  if (doc.containsKey("mode")) {
+  if (!doc["mode"].isNull()) {
     config.display.displayMode = doc["mode"];
   }
-  if (doc.containsKey("modeSpeed")) {
+  if (!doc["modeSpeed"].isNull()) {
     config.display.modeSpeed = doc["modeSpeed"];
   }
-  if (doc.containsKey("modeIntensity")) {
+  if (!doc["modeIntensity"].isNull()) {
     config.display.modeIntensity = doc["modeIntensity"];
   }
-  if (doc.containsKey("color2") && doc["color2"].is<JsonObject>()) {
+  if (doc["color2"].is<JsonObject>()) {
     JsonObject c2 = doc["color2"].as<JsonObject>();
     config.display.color2R = c2["r"] | config.display.color2R;
     config.display.color2G = c2["g"] | config.display.color2G;
     config.display.color2B = c2["b"] | config.display.color2B;
   }
-  if (doc.containsKey("dayCycleHours")) {
+  if (!doc["dayCycleHours"].isNull()) {
     uint8_t v = doc["dayCycleHours"];
     config.display.dayCycleHours = (v == 12) ? 12 : 24;
   }
@@ -525,7 +525,7 @@ void handleSyncTime(AsyncWebServerRequest *request) {
 // ============= SYSTEM CONTROL =============
 
 void handleGetFirmware(AsyncWebServerRequest *request) {
-  StaticJsonDocument<256> doc;
+  DynamicJsonDocument doc(256);
   
   doc["version"] = FIRMWARE_VERSION;
   doc["updateURL"] = config.firmware.updateURL;
@@ -538,7 +538,7 @@ void handleGetFirmware(AsyncWebServerRequest *request) {
 
 void handleCheckUpdate(AsyncWebServerRequest *request) {
   // Placeholder - actual OTA update checking would go here
-  StaticJsonDocument<256> doc;
+  DynamicJsonDocument doc(256);
   doc["updateAvailable"] = false;
   doc["latestVersion"] = FIRMWARE_VERSION;
   doc["message"] = "No updates available";
