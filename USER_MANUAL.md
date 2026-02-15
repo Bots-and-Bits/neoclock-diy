@@ -58,9 +58,29 @@ Tip: if the dashboard is empty after a reboot, hard-refresh the page (Cmd/Ctrl+S
 - **Scan** available networks and connect.
 - **Hostname** — device name on your LAN (default `wordclock`).
 
-### Firmware
-- **Upload** a `.bin` firmware file via the web UI.
-- **Auto-check updates** uses GitHub releases if configured.
+### Firmware Updates
+
+The Firmware tab allows you to update the device's software wirelessly (Over-The-Air / OTA).
+
+**How to upload new firmware:**
+1. Obtain a `.bin` firmware file (from GitHub releases or built locally)
+2. Go to Settings → Firmware tab
+3. Click "Choose File" and select the `.bin` file
+4. Click "Upload Firmware"
+5. Confirm the upload (device will be unreachable for ~30 seconds)
+6. Wait for upload to complete (progress bar shown)
+7. Device will automatically reboot with new firmware
+8. Hard refresh your browser (Cmd/Ctrl+Shift+R) after reboot
+
+**Notes:**
+- Upload takes 10-30 seconds depending on file size and WiFi speed
+- Device will lose connectivity during the update - this is normal
+- Only upload firmware files designed for your specific hardware
+- After successful update, the version number will change (visible on Dashboard)
+
+**Auto-check updates** (future feature):
+- Will check GitHub releases for new versions
+- Currently a placeholder - manual uploads only
 
 ---
 
@@ -69,7 +89,7 @@ Tip: if the dashboard is empty after a reboot, hard-refresh the page (Cmd/Ctrl+S
 - Changes are applied to RAM immediately and saved to flash shortly after (deferred write to protect the flash).
 - If you change several settings rapidly, the web UI temporarily blocks automatic parent refreshes to avoid overwriting in-progress edits.
 
-Important: if the device reboots before the deferred save completes, your last unsaved change may be lost — wait a few seconds after changing important settings.
+Important: if the device reboots before the deferred save completes, your last unsaved change may be lost — wait 5 seconds after changing important settings to ensure they are persisted to flash.
 
 ---
 

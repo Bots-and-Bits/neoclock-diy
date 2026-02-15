@@ -461,22 +461,6 @@ void animationRainbowMode() {
   FastLED.show();
 }
 
-// Compute a color based on time for DayColorCycle
-CRGB getDayCycleColor(int hour, int minute) {
-  // Determine fraction of cycle (0..1)
-  float h = hour + minute / 60.0;
-  float span = (config.display.dayCycleHours == 12) ? 12.0f : 24.0f;
-  float frac = fmod(h, span) / span; // 0..1
-
-  // Map fraction to hue (0..255) - full color spectrum over day
-  uint8_t hue = (uint8_t)(frac * 255.0);
-  uint8_t sat = 255;  // Full saturation for vivid colors
-  uint8_t val = 255;  // Full value, brightness controlled separately
-
-  CRGB c = CHSV(hue, sat, val);
-  return c;
-}
-
 // ============= MASTER ANIMATION CONTROLLER =============
 
 void playAnimation(AnimationState animation) {

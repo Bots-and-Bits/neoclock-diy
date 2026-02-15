@@ -286,7 +286,6 @@
         <div class="p-3 bg-gray-800/50 rounded-lg">
           <div class="text-sm text-gray-400">Firmware Version</div>
           <div class="text-xl font-bold text-orange-400">{config.firmware.version}</div>
-          <div class="text-xs text-gray-500">ESP32 platform</div>
         </div>
       </div>
     </div>

@@ -136,23 +136,9 @@
   {#if firmwareInfo}
     <div class="bg-gradient-to-br from-purple-600/20 to-pink-600/20 rounded-lg p-6 border border-purple-500/30">
       <h3 class="text-lg font-semibold mb-4">Current Firmware</h3>
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <div class="text-gray-400">Version</div>
-          <div class="text-xl font-bold text-purple-400 mt-1">{firmwareInfo.version}</div>
-        </div>
-        <div>
-          <div class="text-gray-400">Build Date</div>
-          <div class="font-medium mt-1">{firmwareInfo.buildDate}</div>
-        </div>
-        <div>
-          <div class="text-gray-400">Flash Size</div>
-          <div class="font-medium mt-1">{formatBytes(firmwareInfo.flashSize)}</div>
-        </div>
-        <div>
-          <div class="text-gray-400">Free Heap</div>
-          <div class="font-medium mt-1">{formatBytes(firmwareInfo.freeHeap)}</div>
-        </div>
+      <div class="text-sm">
+        <div class="text-gray-400">Version</div>
+        <div class="text-2xl font-bold text-purple-400 mt-1">{firmwareInfo.version}</div>
       </div>
     </div>
   {/if}

@@ -20,6 +20,7 @@ enum DisplayMode : uint8_t {
 };
 
 struct DisplayConfig {
+  char language[8] = "de";           // ISO 639-1 language code
   uint8_t brightness = 80;           // LED brightness (0-255)
   uint8_t nightBrightness = 20;      // Night mode brightness
   bool nightModeEnabled = false;     // Enable automatic night mode

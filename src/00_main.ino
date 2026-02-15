@@ -21,6 +21,8 @@
 
 #include "config.h"
 #include "animations.h"
+#include "language/language_manager.h"
+#include "lighting_pipeline.h"
 
 // ============= FIRMWARE VERSION =============
 #ifndef FIRMWARE_VERSION
@@ -73,7 +75,7 @@ int wifiReconnectAttempts = 0;
 // Config persistence (write-through cache)
 bool configDirty = false;
 unsigned long lastConfigSave = 0;
-const unsigned long CONFIG_SAVE_INTERVAL = 30000;  // Save to flash every 30s if dirty
+const unsigned long CONFIG_SAVE_INTERVAL = 5000;  // Save to flash every 5s if dirty
 
 // ============= SETUP =============
 void setup() {
@@ -91,6 +93,7 @@ void setup() {
   
   // Initialize LEDs
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, LED_COUNT).setCorrection(TypicalLEDStrip);
+  FastLED.setDither(BINARY_DITHER);  // Enable temporal dithering for smoother colors at low brightness
   FastLED.setBrightness(80);
   
   // Startup animation
@@ -99,6 +102,10 @@ void setup() {
   // Load configuration
   loadConfig();
   printConfig();
+  
+  // Initialize language manager
+  langManager.begin();
+  langManager.setLanguage(config.display.language);
   
   // Apply loaded color settings
   redval = config.display.colorR;
@@ -148,42 +155,17 @@ void loop() {
   
   // Update clock display or display-mode (unless a system animation is playing)
   if (!isAnimationPlaying()) {
-    // Mode: Rainbow (first set time words, then apply rainbow)
-    if (config.display.displayMode == DISPLAY_RAINBOW) {
-      // Set which LEDs should be lit based on time (but don't show yet)
-      redval = 255; greenval = 255; blueval = 255; // temp white for word detection
-      setMinutesNoShow(minutes, hours);
-      // Apply rainbow effect to lit LEDs
-      animationRainbowMode();
-    }
-    // Mode: DayColorCycle (change base color according to time, then draw words)
-    else if (config.display.displayMode == DISPLAY_DAY_CYCLE) {
-      CRGB c = getDayCycleColor(hours, minutes);
-      redval = c.r;
-      greenval = c.g;
-      blueval = c.b;
-      setMinutes(minutes, hours);
-      applyBrightnessSettings();
-      FastLED.show();
-    }
-    // Mode: Ambient Pulse (gentle brightness variation)
-    else if (config.display.displayMode == DISPLAY_AMBIENT_PULSE) {
-      animationAmbientPulse(hours, minutes);
-    }
-    // Mode: Smooth Gradient (blend between two colors)
-    else if (config.display.displayMode == DISPLAY_GRADIENT) {
-      animationSmoothGradient(hours, minutes);
-    }
-    // Default: static word-clock display (uses redval/greenval/blueval from config)
-    else {
-      // Ensure base color matches configured static color
-      redval = config.display.colorR;
-      greenval = config.display.colorG;
-      blueval = config.display.colorB;
-      setMinutes(minutes, hours);
-      applyBrightnessSettings();
-      FastLED.show();
-    }
+    // Step 1: Clear LED array
+    fill_solid(leds, LED_COUNT, CRGB::Black);
+    
+    // Step 2: Language sets active LEDs (white mask)
+    langManager.getActive()->setActiveLEDs(hours, minutes, leds);
+    
+    // Step 3: Apply lighting pipeline (colors, effects, brightness)
+    applyLightingPipeline(leds, hours, minutes);
+    
+    // Step 4: Display
+    FastLED.show();
   }
   
   // Periodic config save (write-through cache)

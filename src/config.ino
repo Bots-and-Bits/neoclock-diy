@@ -10,6 +10,11 @@ void loadConfig() {
   preferences.begin("wordclock", false);  // Read-write mode
   
   // Load display settings
+  preferences.getString("language", config.display.language, sizeof(config.display.language));
+  if (strlen(config.display.language) == 0) {
+    strcpy(config.display.language, "de");  // Default to German
+  }
+  
   config.display.brightness = preferences.getUChar("disp_bright", 80);
   config.display.nightBrightness = preferences.getUChar("disp_night", 20);
   config.display.nightModeEnabled = preferences.getBool("night_en", false);
@@ -70,6 +75,7 @@ void saveConfig() {
   preferences.begin("wordclock", false);
   
   // Save display settings
+  preferences.putString("language", config.display.language);
   preferences.putUChar("disp_bright", config.display.brightness);
   preferences.putUChar("disp_night", config.display.nightBrightness);
   preferences.putBool("night_en", config.display.nightModeEnabled);
@@ -125,6 +131,7 @@ void printConfig() {
   Serial.println("\n========== CURRENT CONFIGURATION ==========");
   
   Serial.println("\n[Display]");
+  Serial.printf("  Language: %s\n", config.display.language);
   Serial.printf("  Brightness: %d\n", config.display.brightness);
   Serial.printf("  Night Brightness: %d\n", config.display.nightBrightness);
   Serial.printf("  Night Mode: %s\n", config.display.nightModeEnabled ? "Enabled" : "Disabled");

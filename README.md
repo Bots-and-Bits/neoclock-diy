@@ -14,17 +14,20 @@ This repository contains:
 Quick developer commands:
 
 ```bash
-# build frontend and embed into firmware header
+# Full rebuild workflow (frontend + firmware):
 cd frontend && npm ci && npm run generate && cd ..
+pio run -e esp32dev_ota -t upload  # or use USB: --target upload
 
-# build + upload firmware
-pio run --target upload
+# Firmware-only changes (no UI changes):
+pio run -e esp32dev_ota -t upload
 
 # monitor serial output
 pio device monitor --baud 115200
 ```
 
 Notes:
+- **Always rebuild webapp** (`npm run generate`) if you changed Svelte/frontend code
+- Firmware-only changes (C++/Arduino files) don't need frontend rebuild
 - The REST API reads/writes the in‑RAM `config` object; flash/NVS writes are deferred (see `markConfigDirty()`).
 - Hard-refresh browser (Cmd/Ctrl+Shift+R) after firmware + webapp updates.
 
@@ -85,16 +88,20 @@ For non-technical users see `USER_MANUAL.md` (initial setup, UI walkthrough, tro
 
 **Supported regions:** Europe, America, Asia, Pacific, Africa (100+ timezones)
 
-### WiFi Settings
+### Language Settings
 
-| Setting | Description |
-|---------|-------------|
-| **SSID** | Network name to connect to |
-| **Password** | WiFi password (saved securely) |
-| **Hostname** | Device name on network (default: `wordclock`) |
-| **AP SSID** | Access point name when in setup mode |
+| Setting | Description | Available Languages |
+|---------|-------------|--------------------|
+| **Word Clock Language** | Language for time display | German (de), English (en) |
 
-## 🚀 Getting Started
+**Note:** Language changes are applied immediately. Additional languages can be contributed via the plugin system.
+
+**Contributing a new language:** See `CONTRIBUTING_LANGUAGES.md` for a step-by-step guide on adding support for your language.
+
+**Current languages:**
+- **German (de):** Full support with accurate LED mappings
+- **English (en):** Template implementation (needs contributor with English word clock for LED mapping)
+
 
 ### First-Time Setup
 
@@ -147,12 +154,50 @@ Trigger the workflow from the Actions tab or push a commit to run it.
 # Build only
 pio run
 
-# Build + upload via USB
+# Build + upload via USB (first-time setup)
 pio run --target upload --upload-port /dev/cu.usbserial-0001
+
+# Build + upload via WiFi (OTA - for development after initial flash)
+pio run -e esp32dev_ota -t upload
+
+# If .local doesn't resolve, use IP address:
+pio run -e esp32dev_ota -t upload --upload-port 192.168.1.70
 
 # Monitor serial output
 pio device monitor
 ```
+
+**Important:** If you modified the frontend (Svelte/UI), rebuild webapp first:
+```bash
+cd frontend && npm run generate && cd ..
+# Then run firmware build/upload
+```
+
+**OTA Upload (WiFi):**
+- Faster development iteration - no USB cable needed
+- Uses the same `/api/firmware/upload` endpoint as the web UI
+- Device automatically reboots after upload
+- Configure hostname/IP in `platformio.ini` under `[env:esp32dev_ota]`
+- **Remember:** Regenerate webapp.h if frontend changed (see above)
+
+**VS Code Tasks:**
+- `Cmd+Shift+P` → "Tasks: Run Task" → "PlatformIO: Build & Upload (OTA)"
+- Default task (`Cmd+Shift+B`) uses USB upload
+
+**Generating firmware binary for distribution:**
+
+After building, the firmware binary is available at:
+```
+.pio/build/esp32dev/firmware.bin
+```
+
+This `.bin` file can be:
+- Uploaded via the web UI (Settings → Firmware → Upload)
+- Distributed to users for OTA updates
+- Included in GitHub releases
+- Flashed using esptool: `esptool.py write_flash 0x10000 firmware.bin`
+
+**Note:** The binary includes the complete firmware with embedded webapp (~970KB).
 
 **Complete rebuild workflow:**
 
@@ -160,8 +205,12 @@ pio device monitor
 # 1. Build web UI and embed into firmware
 cd frontend && npm run generate && cd ..
 
-# 2. Flash to device
+# 2. Flash to device (choose one):
+# Option A: Via USB
 pio run --target upload --upload-port /dev/cu.usbserial-0001
+
+# Option B: Via WiFi (OTA - faster for development)
+pio run -e esp32dev_ota -t upload
 
 # 3. Hard refresh browser to clear cache
 # Press: Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows/Linux)
@@ -176,7 +225,13 @@ Wordclock/
 │   ├── api.ino              # REST API endpoints
 │   ├── animations.ino       # LED animations & display modes
 │   ├── config.h/.ino        # Settings & persistence (NVS)
-│   ├── time.ino             # German word clock logic
+│   ├── time.ino             # Deprecated (legacy German logic)
+│   ├── language/            # Multi-language plugin system
+│   │   ├── language_interface.h   # Base class for language plugins
+│   │   ├── language_manager.cpp   # Language registry & switcher
+│   │   ├── lang_german.cpp        # German implementation
+│   │   └── lang_english.cpp       # English template
+│   ├── lighting_pipeline.cpp # Color/effects pipeline
 │   ├── webapp.ino           # Web server & static file serving
 │   └── webapp.h             # Embedded frontend (auto-generated)
 ├── frontend/                 # Svelte web interface
@@ -203,6 +258,11 @@ The ESP32 exposes a REST API for the web interface:
 - `GET /api/config` - Get all settings
 - `PUT /api/config` - Update settings
 - `POST /api/config/reset` - Factory reset
+
+### Language Management
+- `GET /api/languages` - List available languages
+- `GET /api/languages/current` - Get current language
+- `POST /api/languages/set` - Change language
 
 ### Display Control
 - `POST /api/display` - Update display in real-time (brightness, color, mode)
@@ -244,11 +304,20 @@ The ESP32 exposes a REST API for the web interface:
 3. Verify NTP server is reachable (default: `pool.ntp.org`)
 4. Check that WiFi is connected (Dashboard → WiFi Status)
 
-### Can't upload firmware
+### Can't upload firmware via USB
 1. Verify USB cable supports data (not just charging)
 2. Install CH340/CP210x drivers if needed
 3. Check serial port: `pio device list`
 4. Try different USB port
+5. Press EN/BOOT button on ESP32 during upload if needed
+
+### Can't upload firmware via web UI
+1. Ensure file is a valid `.bin` firmware file
+2. Check file size is reasonable (~1MB)
+3. Verify device is connected to WiFi
+4. Wait for upload to complete (~30 seconds)
+5. Device will automatically reboot after successful upload
+6. Allow 10-30 seconds for device to restart
 
 ## 📝 Configuration Storage
 
@@ -259,17 +328,37 @@ Settings are persisted to ESP32's NVS (non-volatile storage):
 - Night mode schedule
 - Brightness levels
 
-**Flash wear protection:** Settings are cached in RAM and written to flash only when changed (max every 30 seconds).
+**Flash wear protection:** Settings are cached in RAM and written to flash only when changed (deferred write after 5 seconds of inactivity).
 
 ## 🔮 Future Ideas
 
 - [ ] Additional display modes (fire flicker, sparkle, etc.)
-- [ ] Multiple language support (English, French, etc.)
+- [x] **Multiple language support** ✅ Implemented with plugin system
+- [ ] More language contributions (French, Spanish, Italian, etc.)
 - [ ] Alarm clock functionality
 - [ ] MQTT integration for smart home
 - [ ] LED pattern customization
 - [ ] Weather display integration
 - [ ] API for external control
+
+## 🤝 Contributing
+
+### Adding a New Language
+
+We welcome language contributions! See **`CONTRIBUTING_LANGUAGES.md`** for:
+- Step-by-step implementation guide
+- LED mapping instructions
+- Testing procedures
+- Example code
+
+### Other Contributions
+
+For bug fixes, features, or improvements:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## 📄 License
 

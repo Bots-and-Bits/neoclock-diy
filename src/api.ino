@@ -3,8 +3,12 @@
 // All endpoints return JSON responses
 
 #include "config.h"
+#include "language/language_manager.h"
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
+
+// External references
+extern bool configDirty;
 
 // API endpoint handlers
 
@@ -60,6 +64,7 @@ void handleGetConfig(AsyncWebServerRequest *request) {
   doc["display"]["color2G"] = config.display.color2G;
   doc["display"]["color2B"] = config.display.color2B;
   doc["display"]["dayCycleHours"] = config.display.dayCycleHours;
+  doc["display"]["language"] = config.display.language;
   
   // Time settings
   doc["time"]["timezone"] = config.time.timezone;
@@ -283,6 +288,17 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     if (!doc["display"]["dayCycleHours"].isNull()) {
       uint8_t v = doc["display"]["dayCycleHours"];
       config.display.dayCycleHours = (v == 12) ? 12 : 24;
+    }
+    if (!doc["display"]["language"].isNull()) {
+      const char* newLang = doc["display"]["language"];
+      if (langManager.isAvailable(newLang)) {
+        strncpy(config.display.language, newLang, sizeof(config.display.language) - 1);
+        config.display.language[sizeof(config.display.language) - 1] = '\0';
+        langManager.setLanguage(newLang);
+        Serial.printf("🌍 Language changed to: %s\n", newLang);
+      } else {
+        Serial.printf("⚠️  Language '%s' not available, ignoring\n", newLang);
+      }
     }
     
     // Time settings
@@ -554,6 +570,95 @@ void handleRestart(AsyncWebServerRequest *request) {
   ESP.restart();
 }
 
+// ============= LANGUAGE MANAGEMENT =============
+
+void handleGetLanguages(AsyncWebServerRequest *request) {
+  DynamicJsonDocument doc(512);
+  
+  // Get list of available languages from language manager
+  int count = langManager.getCount();
+  
+  JsonArray languagesArray = doc.createNestedArray("languages");
+  for (int i = 0; i < count; i++) {
+    LanguageInterface* lang = langManager.getByIndex(i);
+    if (lang != nullptr) {
+      JsonObject langObj = languagesArray.createNestedObject();
+      langObj["code"] = lang->getCode();
+      langObj["name"] = lang->getName();
+    }
+  }
+  
+  doc["current"] = config.display.language;
+  doc["count"] = count;
+  
+  String response;
+  serializeJson(doc, response);
+  request->send(200, "application/json", response);
+}
+
+void handleGetCurrentLanguage(AsyncWebServerRequest *request) {
+  DynamicJsonDocument doc(256);
+  
+  doc["language"] = config.display.language;
+  doc["isActive"] = (langManager.getActive() != nullptr);
+  
+  String response;
+  serializeJson(doc, response);
+  request->send(200, "application/json", response);
+}
+
+void handleSetLanguage(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+  if (index == 0) {
+    // First chunk - parse JSON
+    DynamicJsonDocument doc(256);
+    DeserializationError error = deserializeJson(doc, (const char*)data, len);
+    
+    if (error) {
+      Serial.printf("❌ Language set JSON parse error: %s\n", error.c_str());
+      request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+      return;
+    }
+    
+    const char* newLang = doc["language"];
+    if (!newLang || strlen(newLang) == 0) {
+      request->send(400, "application/json", "{\"error\":\"Language code required\"}");
+      return;
+    }
+    
+    // Try to set the language
+    bool success = langManager.setLanguage(newLang);
+    
+    if (success) {
+      // Update config
+      strncpy(config.display.language, newLang, sizeof(config.display.language) - 1);
+      config.display.language[sizeof(config.display.language) - 1] = '\0';
+      
+      // Mark config as dirty for periodic save
+      configDirty = true;
+      
+      Serial.printf("✅ Language changed to: %s\n", newLang);
+      
+      DynamicJsonDocument responseDoc(256);
+      responseDoc["success"] = true;
+      responseDoc["language"] = newLang;
+      
+      String response;
+      serializeJson(responseDoc, response);
+      request->send(200, "application/json", response);
+    } else {
+      Serial.printf("❌ Language '%s' not available\n", newLang);
+      
+      DynamicJsonDocument responseDoc(256);
+      responseDoc["error"] = "Language not available";
+      responseDoc["requested"] = newLang;
+      
+      String response;
+      serializeJson(responseDoc, response);
+      request->send(404, "application/json", response);
+    }
+  }
+}
+
 // ============= REGISTER ALL API ENDPOINTS =============
 
 void setupAPI(AsyncWebServer &server) {
@@ -588,6 +693,11 @@ void setupAPI(AsyncWebServer &server) {
   // System Control
   server.on("/api/system/restart", HTTP_POST, handleRestart);
   server.on("/api/restart", HTTP_POST, handleRestart);  // Alias for frontend
+  
+  // Language Management
+  server.on("/api/languages", HTTP_GET, handleGetLanguages);
+  server.on("/api/languages/current", HTTP_GET, handleGetCurrentLanguage);
+  server.on("/api/languages/set", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, handleSetLanguage);
   
   Serial.println("✅ API endpoints registered");
 }

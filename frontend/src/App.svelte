@@ -147,9 +147,8 @@
     <!-- Header -->
     <header class="mb-8">
       <h1 class="text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-        ✨ Wordclock 3.1
+        ✨ Wordclock
       </h1>
-      <p class="text-gray-400">Modern ESP32 Word Clock Interface</p>
     </header>
 
     <!-- WiFi Status Bar -->
@@ -241,7 +240,8 @@
 
     <!-- Footer -->
     <footer class="mt-8 text-center text-gray-500 text-sm">
-      <p>Wordclock 3.1 • {config?.firmware?.version || '...'} • Built with ❤️ and Svelte</p>
+      <p>Wordclock</p>
+      <p class="text-xs text-gray-600 mt-1">made by Bot and Bits</p>
     </footer>
   </div>
 

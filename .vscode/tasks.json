@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PlatformIO: Build & Upload (OTA)",
+      "type": "shell",
+      "command": "pio",
+      "args": ["run", "-e", "esp32dev_ota", "-t", "upload"],
+      "problemMatcher": ["$platformio"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "PlatformIO: Build & Upload (Serial)",
+      "type": "shell",
+      "command": "pio",
+      "args": ["run", "-e", "esp32dev", "-t", "upload"],
+      "problemMatcher": ["$platformio"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}

@@ -8,6 +8,8 @@
   let localConfig = null;
   let message = '';
   let messageType = '';
+  let languages = [];
+  let loadingLanguages = false;
   
   // Reactive color hex value for color picker
   let colorHex = '#FFFFFF';
@@ -244,6 +246,58 @@
     editingTimeoutId = setTimeout(() => {
       userIsEditing = false;
     }, 5000); // 5 second block to prevent race conditions
+  }
+  
+  // Fetch available languages on mount
+  async function loadLanguages() {
+    loadingLanguages = true;
+    try {
+      const response = await fetch('/api/languages');
+      const data = await response.json();
+      languages = data.languages || [];
+    } catch (error) {
+      console.error('Failed to load languages:', error);
+      languages = [];
+    } finally {
+      loadingLanguages = false;
+    }
+  }
+  
+  // Change language
+  async function changeLanguage() {
+    if (!localConfig || !localConfig.display || !localConfig.display.language) return;
+    
+    blockParentUpdates();
+    
+    try {
+      const response = await fetch('/api/languages/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: localConfig.display.language })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        message = `Language changed to ${result.language}`;
+        messageType = 'success';
+        setTimeout(() => { message = ''; }, 3000);
+      } else {
+        message = result.error || 'Failed to change language';
+        messageType = 'error';
+        setTimeout(() => { message = ''; }, 5000);
+      }
+    } catch (error) {
+      console.error('Failed to change language:', error);
+      message = 'Failed to change language';
+      messageType = 'error';
+      setTimeout(() => { message = ''; }, 5000);
+    }
+  }
+  
+  // Load languages when component mounts
+  $: if (config && languages.length === 0 && !loadingLanguages) {
+    loadLanguages();
   }
 </script>
 
@@ -519,6 +573,39 @@
           <p class="text-xs text-gray-500 mt-1">
             Current: {localConfig.time.timezone}
           </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Language Settings -->
+    <div class="bg-gray-700/30 rounded-lg p-6 border border-gray-600">
+      <h3 class="text-xl font-semibold mb-4 text-blue-400">Language Settings</h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label for="language" class="block text-sm font-medium text-gray-300 mb-2">
+            Word Clock Language
+          </label>
+          {#if loadingLanguages}
+            <div class="text-gray-500 text-sm">Loading languages...</div>
+          {:else if languages.length > 0}
+            <select
+              id="language"
+              bind:value={localConfig.display.language}
+              on:click={() => blockParentUpdates()}
+              on:change={changeLanguage}
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+            >
+              {#each languages as lang}
+                <option value={lang.code}>{lang.name}</option>
+              {/each}
+            </select>
+            <p class="text-xs text-gray-500 mt-1">
+              Current: {localConfig.display.language || 'de'}
+            </p>
+          {:else}
+            <div class="text-gray-500 text-sm">No languages available</div>
+          {/if}
         </div>
       </div>
     </div>
