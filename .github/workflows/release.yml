@@ -1,0 +1,132 @@
+name: Build and Release Firmware
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 4.0.1)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-and-release:
+    name: Build Firmware and Create Release
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write  # Required to create releases
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install frontend dependencies & generate webapp
+        working-directory: software/frontend
+        run: |
+          npm ci
+          npm run generate
+
+      - name: Setup Python (for PlatformIO)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install PlatformIO Core
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U platformio
+
+      - name: Build firmware (PlatformIO)
+        working-directory: software
+        run: pio run -e esp32dev
+
+      - name: Prepare release artifacts
+        run: |
+          mkdir -p release-artifacts
+          cp software/.pio/build/esp32dev/firmware.bin release-artifacts/neoclock-${{ inputs.version }}.bin
+          cp software/src/webapp.h release-artifacts/webapp.h
+          
+          # Create installation instructions
+          cat > release-artifacts/INSTALL.txt << 'EOF'
+          Neoclock DIY - Firmware Installation Instructions
+          ================================================
+          
+          Version: ${{ inputs.version }}
+          
+          OPTION 1: Web UI Upload (Easiest)
+          ----------------------------------
+          1. Connect to your Neoclock at http://neoclock.local
+          2. Go to Firmware Update section
+          3. Click "Choose File" and select neoclock-${{ inputs.version }}.bin
+          4. Click "Upload Firmware"
+          5. Wait ~30 seconds for upload and automatic reboot
+          
+          OPTION 2: PlatformIO OTA Upload (For Developers)
+          -------------------------------------------------
+          1. Place firmware.bin in your project
+          2. Run: pio run -t upload --upload-port neoclock.local
+          
+          OPTION 3: USB Flash (First-time setup)
+          ---------------------------------------
+          1. Install esptool: pip install esptool
+          2. Connect ESP32 via USB
+          3. Run: esptool.py write_flash 0x10000 neoclock-${{ inputs.version }}.bin
+          
+          For full documentation, visit:
+          https://github.com/Bots-and-Bits/neoclock-diy
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ inputs.version }}
+          name: Neoclock DIY v${{ inputs.version }}
+          body: |
+            ## Neoclock DIY v${{ inputs.version }}
+            
+            ### 📦 Installation
+            
+            **Via Web Interface (Recommended):**
+            1. Download `neoclock-${{ inputs.version }}.bin` below
+            2. Go to `http://neoclock.local` → Firmware Update
+            3. Upload the `.bin` file
+            4. Wait for automatic reboot
+            
+            **Via USB (First-time flash):**
+            ```bash
+            esptool.py write_flash 0x10000 neoclock-${{ inputs.version }}.bin
+            ```
+            
+            See `INSTALL.txt` for detailed instructions.
+            
+            ### 📝 Changelog
+            
+            <!-- Edit this section with changes for this release -->
+            - 
+            
+            ### ⚙️ Technical Details
+            
+            - **Firmware Size:** ~960KB
+            - **ESP32 Platform:** Arduino framework
+            - **Web UI:** Embedded (106KB compressed)
+            
+            ---
+            
+            **Full Documentation:** [User Manual](https://github.com/Bots-and-Bits/neoclock-diy/blob/main/docs/USER_MANUAL.md)
+          files: |
+            release-artifacts/neoclock-${{ inputs.version }}.bin
+            release-artifacts/webapp.h
+            release-artifacts/INSTALL.txt
+          draft: false
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true

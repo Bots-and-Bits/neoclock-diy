@@ -56,7 +56,7 @@ struct NetworkConfig {
 
 struct FirmwareConfig {
   char version[16] = "4.0.0";
-  char updateURL[128] = "https://api.github.com/repos/YOUR_USERNAME/wordclock/releases/latest";
+  char updateURL[128] = "https://api.github.com/repos/Bots-and-Bits/neoclock-diy/releases/latest";
   bool autoCheckUpdates = true;
   uint32_t updateCheckInterval = 86400;  // Check daily (seconds)
 };

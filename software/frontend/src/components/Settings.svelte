@@ -324,9 +324,12 @@
       
       <div class="space-y-4">
         <div>
-          <label for="brightness" class="block text-sm font-medium text-gray-300 mb-2">
-            Brightness: {Math.round(localConfig.display.brightness / 2.55)}%
-          </label>
+          <div class="flex items-center gap-2 mb-2">
+            <label for="brightness" class="block text-sm font-medium text-gray-300">
+              Brightness: {Math.round(localConfig.display.brightness / 2.55)}%
+            </label>
+            <span class="text-gray-400 cursor-help" title="Overall display brightness (0-100%)">ⓘ</span>
+          </div>
           <input
             id="brightness"
             type="range"
@@ -347,9 +350,12 @@
         </div>
 
         <div>
-          <label for="color" class="block text-sm font-medium text-gray-300 mb-2">
-            Primary Color
-          </label>
+          <div class="flex items-center gap-2 mb-2">
+            <label for="color" class="text-sm font-medium text-gray-300">
+              Primary Color
+            </label>
+            <span class="text-gray-400 cursor-help" title="Main color used for displaying time and animations">ⓘ</span>
+          </div>
           <div class="flex gap-3 items-center">
             <input
               id="color"
@@ -371,7 +377,10 @@
 
         <!-- Display modes -->
         <div>
-          <label for="displayMode" class="block text-sm font-medium text-gray-300 mb-2">Display Mode</label>
+          <div class="flex items-center gap-2 mb-2">
+            <label for="displayMode" class="text-sm font-medium text-gray-300">Display Mode</label>
+            <span class="text-gray-400 cursor-help" title="Choose how colors are displayed: static, animated rainbow, time-based cycle, or gradient">ⓘ</span>
+          </div>
           <div class="flex gap-3 items-center">
             <select id="displayMode"
               bind:value={localConfig.display.displayMode}
@@ -438,9 +447,12 @@
 
         <div class="border-t border-gray-600 pt-4">
           <div class="flex items-center justify-between mb-4">
-            <div>
-              <div class="text-sm font-medium text-gray-300">Night Mode</div>
-              <div class="text-xs text-gray-500">Automatically dim display at night</div>
+            <div class="flex items-center gap-2">
+              <div>
+                <div class="text-sm font-medium text-gray-300">Night Mode</div>
+                <div class="text-xs text-gray-500">Automatically dim display at night</div>
+              </div>
+              <span class="text-gray-400 cursor-help" title="Reduce brightness during specified hours for comfortable nighttime viewing">ⓘ</span>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input

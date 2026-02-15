@@ -6,6 +6,7 @@
 #include "language/language_manager.h"
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
+#include <HTTPClient.h>
 
 // External references
 extern bool configDirty;
@@ -552,15 +553,140 @@ void handleGetFirmware(AsyncWebServerRequest *request) {
   request->send(200, "application/json", response);
 }
 
+// Compare semantic versions (e.g., "4.0.1" vs "4.0.0")
+// Returns: 1 if v1 > v2, 0 if equal, -1 if v1 < v2
+int compareVersions(String v1, String v2) {
+  int parts1[3] = {0, 0, 0};
+  int parts2[3] = {0, 0, 0};
+  
+  // Parse v1
+  int idx = 0, partIdx = 0;
+  while (idx < v1.length() && partIdx < 3) {
+    int dotPos = v1.indexOf('.', idx);
+    if (dotPos == -1) dotPos = v1.length();
+    parts1[partIdx++] = v1.substring(idx, dotPos).toInt();
+    idx = dotPos + 1;
+  }
+  
+  // Parse v2
+  idx = 0; partIdx = 0;
+  while (idx < v2.length() && partIdx < 3) {
+    int dotPos = v2.indexOf('.', idx);
+    if (dotPos == -1) dotPos = v2.length();
+    parts2[partIdx++] = v2.substring(idx, dotPos).toInt();
+    idx = dotPos + 1;
+  }
+  
+  // Compare major, minor, patch
+  for (int i = 0; i < 3; i++) {
+    if (parts1[i] > parts2[i]) return 1;
+    if (parts1[i] < parts2[i]) return -1;
+  }
+  
+  return 0; // Equal
+}
+
 void handleCheckUpdate(AsyncWebServerRequest *request) {
-  // Placeholder - actual OTA update checking would go here
-  DynamicJsonDocument doc(256);
-  doc["updateAvailable"] = false;
-  doc["latestVersion"] = FIRMWARE_VERSION;
-  doc["message"] = "No updates available";
+  HTTPClient http;
+  DynamicJsonDocument responseDoc(512);
+  
+  // Check if update URL is configured
+  if (strlen(config.firmware.updateURL) == 0) {
+    responseDoc["updateAvailable"] = false;
+    responseDoc["latestVersion"] = FIRMWARE_VERSION;
+    responseDoc["message"] = "Update URL not configured";
+    String response;
+    serializeJson(responseDoc, response);
+    request->send(200, "application/json", response);
+    return;
+  }
+  
+  Serial.println("🔍 Checking for firmware updates...");
+  Serial.printf("   Update URL: %s\n", config.firmware.updateURL);
+  
+  http.begin(config.firmware.updateURL);
+  http.addHeader("Accept", "application/vnd.github+json");
+  http.addHeader("User-Agent", "Neoclock-DIY-ESP32");
+  
+  int httpCode = http.GET();
+  
+  if (httpCode == HTTP_CODE_OK) {
+    String payload = http.getString();
+    DynamicJsonDocument githubDoc(2048);
+    DeserializationError error = deserializeJson(githubDoc, payload);
+    
+    if (!error) {
+      const char* tagName = githubDoc["tag_name"];
+      const char* releaseName = githubDoc["name"];
+      const char* publishedAt = githubDoc["published_at"];
+      bool prerelease = githubDoc["prerelease"] | false;
+      
+      if (tagName != nullptr) {
+        // Remove 'v' prefix if present for comparison
+        String latestVersion = String(tagName);
+        if (latestVersion.startsWith("v")) {
+          latestVersion = latestVersion.substring(1);
+        }
+        
+        String currentVersion = String(FIRMWARE_VERSION);
+        
+        // Compare versions semantically (not just string equality)
+        int versionComparison = compareVersions(latestVersion, currentVersion);
+        bool updateAvailable = (versionComparison > 0); // Latest is newer than current
+        
+        responseDoc["updateAvailable"] = updateAvailable;
+        responseDoc["latestVersion"] = latestVersion;
+        responseDoc["currentVersion"] = currentVersion;
+        responseDoc["releaseName"] = releaseName;
+        responseDoc["publishedAt"] = publishedAt;
+        responseDoc["prerelease"] = prerelease;
+        
+        if (updateAvailable) {
+          responseDoc["message"] = "New version available: " + latestVersion;
+          Serial.printf("✅ Update available: %s -> %s\n", FIRMWARE_VERSION, latestVersion.c_str());
+        } else {
+          responseDoc["message"] = "You are running the latest version";
+          Serial.println("✅ Already running latest version");
+        }
+        
+        // Add download URL for the .bin file if available
+        JsonArray assets = githubDoc["assets"];
+        for (JsonObject asset : assets) {
+          const char* name = asset["name"];
+          if (name != nullptr && strstr(name, ".bin") != nullptr) {
+            responseDoc["downloadUrl"] = asset["browser_download_url"].as<const char*>();
+            break;
+          }
+        }
+      } else {
+        responseDoc["updateAvailable"] = false;
+        responseDoc["latestVersion"] = FIRMWARE_VERSION;
+        responseDoc["message"] = "Could not parse release information";
+        Serial.println("⚠️ Failed to parse tag_name from GitHub response");
+      }
+    } else {
+      responseDoc["updateAvailable"] = false;
+      responseDoc["latestVersion"] = FIRMWARE_VERSION;
+      responseDoc["message"] = "Failed to parse GitHub response";
+      Serial.printf("⚠️ JSON parse error: %s\n", error.c_str());
+    }
+  } else {
+    responseDoc["updateAvailable"] = false;
+    responseDoc["latestVersion"] = FIRMWARE_VERSION;
+    
+    if (httpCode == HTTP_CODE_NOT_FOUND) {
+      responseDoc["message"] = "No releases found";
+      Serial.println("⚠️ No releases found (404)");
+    } else {
+      responseDoc["message"] = "Failed to check for updates (HTTP " + String(httpCode) + ")";
+      Serial.printf("⚠️ HTTP error: %d\n", httpCode);
+    }
+  }
+  
+  http.end();
   
   String response;
-  serializeJson(doc, response);
+  serializeJson(responseDoc, response);
   request->send(200, "application/json", response);
 }
 

@@ -178,9 +178,12 @@
       
       <div class="space-y-4">
         <div>
-          <label for="hostname" class="block text-sm font-medium text-gray-300 mb-2">
-            Hostname
-          </label>
+          <div class="flex items-center gap-2 mb-2">
+            <label for="hostname" class="block text-sm font-medium text-gray-300">
+              Hostname
+            </label>
+            <span class="text-gray-400 cursor-help" title="mDNS hostname for accessing the device on your local network">ⓘ</span>
+          </div>
           <input
             id="hostname"
             type="text"
@@ -194,9 +197,12 @@
         </div>
 
         <div>
-          <label for="apSSID" class="block text-sm font-medium text-gray-300 mb-2">
-            Access Point SSID
-          </label>
+          <div class="flex items-center gap-2 mb-2">
+            <label for="apSSID" class="block text-sm font-medium text-gray-300">
+              Access Point SSID
+            </label>
+            <span class="text-gray-400 cursor-help" title="WiFi network name broadcasted when device is in setup mode (open network)">ⓘ</span>
+          </div>
           <input
             id="apSSID"
             type="text"
@@ -211,15 +217,12 @@
       </div>
     </div>
 
-    <!-- Time Settings -->
-    <div class="bg-gray-700/30 rounded-lg p-6 border border-gray-600">
-      <h3 class="text-xl font-semibold mb-4 text-green-400">Time Settings</h3>
-      
-      <div class="space-y-4">
-        <div>
-          <label for="timezone-manual" class="block text-sm font-medium text-gray-300 mb-2">
-            Timezone (Manual Entry)
-          </label>
+    <!-- Tidiv class="flex items-center gap-2 mb-2">
+            <label for="timezone-manual" class="block text-sm font-medium text-gray-300">
+              Timezone (Manual Entry)
+            </label>
+            <span class="text-gray-400 cursor-help" title="IANA timezone database name for accurate time display with DST support">ⓘ</span>
+          </div>
           <input
             id="timezone-manual"
             type="text"
@@ -230,6 +233,15 @@
           <p class="text-xs text-gray-500 mt-1">
             IANA timezone format. Examples: America/New_York, Europe/London, Asia/Tokyo
           </p>
+        </div>
+
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <label for="ntpServer" class="block text-sm font-medium text-gray-300">
+              NTP Server
+            </label>
+            <span class="text-gray-400 cursor-help" title="Network Time Protocol server for automatic time synchronization">ⓘ</span>
+          </div
         </div>
 
         <div>
@@ -256,26 +268,32 @@
       
       <div class="space-y-4">
         <div class="flex items-center justify-between">
-          <label for="updateCheck" class="text-sm font-medium text-gray-300">
-            Automatic Update Checks
-          </label>
+          <div class="flex items-center gap-2">
+            <label for="autoCheckUpdates" class="text-sm font-medium text-gray-300">
+              Automatic Update Checks
+            </label>
+            <span class="text-gray-400 cursor-help" title="Periodically check GitHub for new firmware versions on startup">ⓘ</span>
+          </div>
           <input
-            id="updateCheck"
+            id="autoCheckUpdates"
             type="checkbox"
-            bind:checked={localConfig.firmware.updateCheck}
+            bind:checked={localConfig.firmware.autoCheckUpdates}
             class="w-5 h-5 rounded bg-gray-600 border-gray-500 text-purple-600 focus:ring-purple-500 focus:ring-2"
           />
         </div>
 
-        {#if localConfig.firmware.updateCheck}
+        {#if localConfig.firmware.autoCheckUpdates}
           <div>
-            <label for="updateUrl" class="block text-sm font-medium text-gray-300 mb-2">
-              Update URL (GitHub Releases API)
-            </label>
+            <div class="flex items-center gap-2 mb-2">
+              <label for="updateURL" class="block text-sm font-medium text-gray-300">
+                Update URL (GitHub Releases API)
+              </label>
+              <span class="text-gray-400 cursor-help" title="GitHub API endpoint to check for latest firmware releases">ⓘ</span>
+            </div>
             <input
-              id="updateUrl"
+              id="updateURL"
               type="text"
-              bind:value={localConfig.firmware.updateUrl}
+              bind:value={localConfig.firmware.updateURL}
               placeholder="https://api.github.com/repos/user/repo/releases/latest"
               class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm font-mono"
             />
