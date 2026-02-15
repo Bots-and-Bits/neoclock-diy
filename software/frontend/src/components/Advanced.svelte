@@ -10,19 +10,27 @@
   let saving = false;
   let message = '';
   let messageType = '';
+  let userIsEditing = false;  // Track if user is actively editing
+  let editingTimeoutId = null;
   
-  // Reactively update localConfig when config changes
+  // Block parent updates while user is editing
+  function blockParentUpdates() {
+    userIsEditing = true;
+    clearTimeout(editingTimeoutId);
+    editingTimeoutId = setTimeout(() => {
+      userIsEditing = false;
+    }, 2000);  // 2 seconds after last keystroke
+  }
+  
+  // Initialize localConfig once from parent config (never overwrite after that)
   $: {
-    try {
-      if (config && 
-          config.display && 
-          config.time &&
-          config.network &&
-          config.firmware) {
+    if (!localConfig && config && config.display && config.time && config.network && config.firmware) {
+      try {
         localConfig = JSON.parse(JSON.stringify(config));
+        console.log('[Advanced] Config initialized');
+      } catch (e) {
+        console.error('[Advanced] Failed to process config:', e);
       }
-    } catch (e) {
-      console.error('[Advanced] Failed to process config:', e);
     }
   }
 
@@ -42,10 +50,9 @@
       if (result.success) {
         message = 'Settings saved successfully!';
         messageType = 'success';
-        dispatch('save');
         
         if (result.restart) {
-          message += ' Device will restart to apply changes.';
+          message += ' Device will restart in 2 seconds to apply hostname change.';
           setTimeout(() => {
             fetch('/api/restart', { method: 'POST' });
           }, 2000);
@@ -188,6 +195,7 @@
             id="hostname"
             type="text"
             bind:value={localConfig.network.hostname}
+            on:input={blockParentUpdates}
             placeholder="neoclock"
             class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
           />
@@ -206,6 +214,7 @@
           <input
             id="apSSID"
             type="text"
+            on:input={blockParentUpdates}
             bind:value={localConfig.network.apSSID}
             placeholder="Neoclock-Setup"
             class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
@@ -227,6 +236,7 @@
             id="timezone-manual"
             type="text"
             bind:value={localConfig.time.timezone}
+            on:input={blockParentUpdates}
             placeholder="Europe/Berlin"
             class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-mono"
           />
@@ -246,13 +256,14 @@
 
         <div>
           <label for="ntpServer" class="block text-sm font-medium text-gray-300 mb-2">
-            NTP Server
-          </label>
-          <input
-            id="ntpServer"
-            type="text"
-            bind:value={localConfig.time.ntpServer}
-            placeholder="pool.ntp.org"
+            <input
+              id="ntpServer"
+              type="text"
+              bind:value={localConfig.time.ntpServer}
+              on:input={blockParentUpdates}
+              placeholder="pool.ntp.org"
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              placeholder="pool.ntp.org"
             class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
           />
           <p class="text-xs text-gray-500 mt-1">
@@ -294,6 +305,7 @@
               id="updateURL"
               type="text"
               bind:value={localConfig.firmware.updateURL}
+              on:input={blockParentUpdates}
               placeholder="https://api.github.com/repos/user/repo/releases/latest"
               class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm font-mono"
             />

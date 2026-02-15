@@ -195,15 +195,29 @@ void handleWiFiConnect(AsyncWebServerRequest *request, uint8_t *data, size_t len
     
     // Wait up to 10 seconds for connection
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-      delay(500);
+    while (WiFi.status() != WL_CONNECTED && attempts < 200) {  // 200 * 50ms = 10 seconds
+      updateAnimation();  // Keep animation running
+      FastLED.show();
+      delay(50);
       attempts++;
     }
     
     if (WiFi.isConnected()) {
       stopAnimation();
       showWiFiConnected(WiFi.localIP());
+      
+      // Shut down Access Point since we're now connected to WiFi
+      Serial.println("📡 Shutting down Access Point...");
+      extern DNSServer dnsServer;  // Reference global DNS server
+      dnsServer.stop();
+      WiFi.softAPdisconnect(true);  // Disable AP
+      WiFi.mode(WIFI_STA);  // Switch to station mode only
+      
+      wificonnected = true;
+      
       request->send(200, "application/json", "{\"success\":true,\"ip\":\"" + WiFi.localIP().toString() + "\"}");
+      
+      Serial.printf("✅ Switched to WiFi station mode - AP disabled\n");
     } else {
       playAnimation(ANIM_ERROR);
       request->send(500, "application/json", "{\"error\":\"Connection failed\"}");
@@ -321,10 +335,38 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       // Store if you have this field - currently not used
     }
     
+    // Network settings
+    if (!doc["network"]["hostname"].isNull()) {
+      String newHostname = doc["network"]["hostname"].as<String>();
+      newHostname.toCharArray(config.network.hostname, sizeof(config.network.hostname));
+      Serial.printf("🌐 Hostname changed to: %s\n", config.network.hostname);
+      needsRestart = true;  // Hostname change requires restart
+    }
+    if (!doc["network"]["apSSID"].isNull()) {
+      String newAPSSID = doc["network"]["apSSID"].as<String>();
+      newAPSSID.toCharArray(config.network.apSSID, sizeof(config.network.apSSID));
+      Serial.printf("📡 AP SSID changed to: %s\n", config.network.apSSID);
+    }
+    
+    // Firmware settings
+    if (!doc["firmware"]["updateURL"].isNull()) {
+      String newUpdateURL = doc["firmware"]["updateURL"].as<String>();
+      newUpdateURL.toCharArray(config.firmware.updateURL, sizeof(config.firmware.updateURL));
+      Serial.printf("🔗 Update URL changed to: %s\n", config.firmware.updateURL);
+    }
+    if (!doc["firmware"]["autoCheckUpdates"].isNull()) {
+      config.firmware.autoCheckUpdates = doc["firmware"]["autoCheckUpdates"];
+      Serial.printf("✅ Auto check updates: %s\n", config.firmware.autoCheckUpdates ? "enabled" : "disabled");
+    }
+    
     // Defer save to reduce flash wear
     markConfigDirty();
     
-    String response = "{\"success\":true}";
+    String response = "{\"success\":true";
+    if (needsRestart) {
+      response += ",\"restart\":true";
+    }
+    response += "}";
     
     request->send(200, "application/json", response);
   }
@@ -414,7 +456,14 @@ void handleUpdateConfig(AsyncWebServerRequest *request) {
 
 void handleConfigReset(AsyncWebServerRequest *request) {
   playAnimation(ANIM_FACTORY_RESET);
+  
+  // Disconnect WiFi and clear any persistent data
+  WiFi.disconnect(true, true);  // disconnect + erase WiFi credentials
+  delay(100);
+  
+  // Reset configuration to defaults
   resetConfig();
+  
   request->send(200, "application/json", "{\"success\":true}");
   delay(1000);
   ESP.restart();

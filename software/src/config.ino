@@ -46,6 +46,15 @@ void loadConfig() {
   // Load network settings
   preferences.getString("wifi_ssid", config.network.ssid, sizeof(config.network.ssid));
   preferences.getString("wifi_pass", config.network.password, sizeof(config.network.password));
+  
+  // If no WiFi credentials found, ensure they're empty
+  if (preferences.isKey("wifi_ssid") == false) {
+    config.network.ssid[0] = '\0';
+  }
+  if (preferences.isKey("wifi_pass") == false) {
+    config.network.password[0] = '\0';
+  }
+  
   preferences.getString("hostname", config.network.hostname, sizeof(config.network.hostname));
   if (strlen(config.network.hostname) == 0) {
     strcpy(config.network.hostname, "neoclock");
@@ -117,14 +126,30 @@ void saveConfig() {
 }
 
 void resetConfig() {
+  Serial.println("🔄 Starting factory reset...");
+  
   preferences.begin("wordclock", false);
   preferences.clear();  // Clear all stored preferences
   preferences.end();
   
-  Serial.println("🔄 Configuration reset to defaults");
+  Serial.println("✅ NVS cleared");
   
-  // Reload default configuration
+  // Reinitialize config struct to defaults (clears RAM)
+  config = Config();
+  
+  Serial.printf("📋 Defaults loaded - hostname: %s, apSSID: %s, wifi: %s\n", 
+                config.network.hostname, config.network.apSSID, config.network.ssid);
+  
+  // Load defaults from (now empty) NVS - will use struct defaults
   loadConfig();
+  
+  Serial.printf("📋 After loadConfig - hostname: %s, apSSID: %s, wifi: %s\n", 
+                config.network.hostname, config.network.apSSID, config.network.ssid);
+  
+  // Save defaults back to NVS for consistency
+  saveConfig();
+  
+  Serial.println("💾 Factory reset complete - defaults saved to NVS");
 }
 
 void printConfig() {

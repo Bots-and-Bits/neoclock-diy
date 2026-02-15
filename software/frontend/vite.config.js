@@ -24,7 +24,7 @@ export default defineConfig({
     proxy: {
       // Proxy API calls to ESP32 during development
       '/api': {
-        target: 'http://wordclock.local',
+        target: 'http://neoclock.local',
         changeOrigin: true,
       },
     },

@@ -213,23 +213,19 @@ void animationSaving() {
 void animationFactoryReset() {
   Serial.println("🔄 Animation: Factory Reset");
   
-  // Rainbow backwards
-  for (int hue = 255; hue >= 0; hue -= 3) {
-    for (int i = 0; i < LED_COUNT; i++) {
-      leds[i] = CHSV(hue, 255, 200);
-    }
+  // Simple red pulse - low power to avoid brown out
+  for (int brightness = 0; brightness < 100; brightness += 5) {
+    leds[0] = CRGB(brightness, 0, 0);  // Single LED red pulse
     FastLED.show();
-    delay(10);
+    delay(20);
+  }
+  for (int brightness = 100; brightness >= 0; brightness -= 5) {
+    leds[0] = CRGB(brightness, 0, 0);
+    FastLED.show();
+    delay(20);
   }
   
-  // White flash 3 times
-  for (int i = 0; i < 3; i++) {
-    setAllLEDs(CRGB::White);
-    delay(200);
-    clearAllLEDs();
-    delay(200);
-  }
-  
+  clearAllLEDs();
   FastLED.setBrightness(config.display.brightness);
 }
 

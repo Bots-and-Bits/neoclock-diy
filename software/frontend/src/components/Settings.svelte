@@ -101,48 +101,42 @@
     }
   }
   
-  // Reactively update localConfig when config changes with full validation
-  // BUT: Don't overwrite if user is actively editing
+  // Initialize localConfig once from parent config (never overwrite after that)
   $: {
-    if (!userIsEditing) {
+    if (!localConfig && config && 
+        config.display && 
+        config.display.brightness !== undefined &&
+        config.display.nightMode &&
+        config.display.color &&
+        config.time &&
+        config.network &&
+        config.firmware) {
       try {
-        console.log('[Settings] Config changed:', config);
-        if (config && 
-            config.display && 
-            config.display.brightness !== undefined &&
-            config.display.nightMode &&
-            config.display.color &&
-            config.time &&
-            config.network &&
-            config.firmware) {
-          console.log('[Settings] Config is valid, cloning...');
-          localConfig = JSON.parse(JSON.stringify(config));  // Deep copy
-          
-          // Normalize structure: ensure nightMode object exists with expected fields
-          if (!localConfig.display.nightMode || typeof localConfig.display.nightMode !== 'object') {
-            localConfig.display.nightMode = {
-              enabled: !!config.display.nightMode?.enabled || !!config.display.nightModeEnabled,
-              brightness: config.display.nightMode?.brightness ?? config.display.nightBrightness ?? 20,
-              startHour: config.display.nightMode?.startHour ?? config.display.nightStartHour ?? 22,
-              endHour: config.display.nightMode?.endHour ?? config.display.nightEndHour ?? 7
-            };
-          } else {
-            // Fill missing fields if any
-            localConfig.display.nightMode.enabled = localConfig.display.nightMode.enabled ?? (config.display.nightModeEnabled ?? false);
-            localConfig.display.nightMode.brightness = localConfig.display.nightMode.brightness ?? (config.display.nightBrightness ?? 20);
-            localConfig.display.nightMode.startHour = localConfig.display.nightMode.startHour ?? (config.display.nightStartHour ?? 22);
-            localConfig.display.nightMode.endHour = localConfig.display.nightMode.endHour ?? (config.display.nightEndHour ?? 7);
-          }
-
-          // Set timezone search to current timezone
-          timezoneSearch = localConfig.time?.timezone || config.time?.timezone || '';
-          
-          console.log('[Settings] LocalConfig set:', localConfig);
+        console.log('[Settings] Initializing config from parent');
+        localConfig = JSON.parse(JSON.stringify(config));  // Deep copy
+        
+        // Normalize structure: ensure nightMode object exists with expected fields
+        if (!localConfig.display.nightMode || typeof localConfig.display.nightMode !== 'object') {
+          localConfig.display.nightMode = {
+            enabled: !!config.display.nightMode?.enabled || !!config.display.nightModeEnabled,
+            brightness: config.display.nightMode?.brightness ?? config.display.nightBrightness ?? 20,
+            startHour: config.display.nightMode?.startHour ?? config.display.nightStartHour ?? 22,
+            endHour: config.display.nightMode?.endHour ?? config.display.nightEndHour ?? 7
+          };
         } else {
-          console.log('[Settings] Config not yet valid, waiting...');
+          // Fill missing fields if any
+          localConfig.display.nightMode.enabled = localConfig.display.nightMode.enabled ?? (config.display.nightModeEnabled ?? false);
+          localConfig.display.nightMode.brightness = localConfig.display.nightMode.brightness ?? (config.display.nightBrightness ?? 20);
+          localConfig.display.nightMode.startHour = localConfig.display.nightMode.startHour ?? (config.display.nightStartHour ?? 22);
+          localConfig.display.nightMode.endHour = localConfig.display.nightMode.endHour ?? (config.display.nightEndHour ?? 7);
         }
+
+        // Set timezone search to current timezone
+        timezoneSearch = localConfig.time?.timezone || config.time?.timezone || '';
+        
+        console.log('[Settings] LocalConfig initialized:', localConfig);
       } catch (e) {
-        console.error('[Settings] Failed to process config:', e);
+        console.error('[Settings] Failed to initialize config:', e);
       }
     }
   }

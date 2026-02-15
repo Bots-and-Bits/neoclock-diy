@@ -63,11 +63,11 @@ String getOTAPage() {
 }
 
 void setupOTA(AsyncWebServer &server) {
-  // Setup mDNS
-  if (!MDNS.begin("neoclock")) {
+  // Setup mDNS using hostname from config
+  if (!MDNS.begin(config.network.hostname)) {
     Serial.println("⚠️  MDNS setup failed");
   } else {
-    Serial.println("✅ mDNS started: neoclock.local");
+    Serial.printf("✅ mDNS started: %s.local\n", config.network.hostname);
   }
   
   // OTA page

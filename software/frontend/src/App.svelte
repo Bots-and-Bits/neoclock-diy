@@ -225,15 +225,15 @@
     {:else}
       <div class="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 border border-gray-700 min-h-[500px]">
         {#if currentView === 'dashboard'}
-          <Dashboard {config} on:refresh={fetchConfig} />
+          <Dashboard {config} />
         {:else if currentView === 'settings'}
-          <Settings {config} on:save={fetchConfig} />
+          <Settings {config} />
         {:else if currentView === 'wifi'}
           <WiFiSetup on:connected={fetchWiFiStatus} />
         {:else if currentView === 'firmware'}
           <FirmwareUpdate />
         {:else if currentView === 'advanced'}
-          <Advanced {config} {status} on:save={fetchConfig} />
+          <Advanced {config} {status} />
         {/if}
       </div>
     {/if}

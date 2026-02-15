@@ -46,6 +46,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -U platformio
 
+      - name: Update version in platformio.ini
+        run: |
+          sed -i 's/-D FIRMWARE_VERSION='"'"'\".*\"'"'"'/-D FIRMWARE_VERSION='"'"'\"${{ inputs.version }}\"'"'"'/g' software/platformio.ini
+          echo "Updated platformio.ini with version ${{ inputs.version }}"
+          grep FIRMWARE_VERSION software/platformio.ini
+
+      - name: Update version in package.json
+        run: |
+          sed -i 's/"version": ".*"/"version": "${{ inputs.version }}"/g' software/frontend/package.json
+          echo "Updated package.json with version ${{ inputs.version }}"
+          grep '"version"' software/frontend/package.json
+
       - name: Build firmware (PlatformIO)
         working-directory: software
         run: pio run -e esp32dev

@@ -25,9 +25,8 @@
 #include "lighting_pipeline.h"
 
 // ============= FIRMWARE VERSION =============
-#ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "4.0.0"
-#endif
+// Version is defined in platformio.ini build_flags: -D FIRMWARE_VERSION='"x.y.z"'
+// This ensures a single source of truth for version management
 
 // ============= LED CONFIGURATION =============
 #ifndef LED_COUNT
@@ -205,9 +204,11 @@ void connectWiFi() {
   playAnimation(ANIM_WIFI_CONNECTING);
   
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 40) {
-    delay(500);
-    Serial.print(".");
+  while (WiFi.status() != WL_CONNECTED && attempts < 400) {  // 400 * 50ms = 20 seconds
+    updateAnimation();  // Keep animation running
+    FastLED.show();
+    delay(50);  // Shorter delay for smoother animation
+    if (attempts % 10 == 0) Serial.print(".");  // Print every 500ms
     attempts++;
     esp_task_wdt_reset();
   }
@@ -247,9 +248,19 @@ void startAccessPoint() {
 void setupTime() {
   Serial.println("⏰ Setting up time with ezTime...");
   
-  // Wait for NTP sync
+  // Wait for NTP sync with animation
   playAnimation(ANIM_NTP_SYNCING);
-  waitForSync();
+  
+  // Non-blocking wait for sync (max 10 seconds)
+  unsigned long syncStart = millis();
+  while (timeStatus() == timeNotSet && millis() - syncStart < 10000) {
+    updateAnimation();  // Keep animation running
+    FastLED.show();
+    events();  // ezTime event handler
+    delay(50);
+    esp_task_wdt_reset();
+  }
+  
   stopAnimation();
   
   Serial.println("✅ NTP synced!");
@@ -306,8 +317,10 @@ void handleWiFiReconnect() {
       WiFi.begin(config.network.ssid, config.network.password);
       
       int attempts = 0;
-      while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-        delay(500);
+      while (WiFi.status() != WL_CONNECTED && attempts < 200) {  // 200 * 50ms = 10 seconds
+        updateAnimation();  // Keep animation running
+        FastLED.show();
+        delay(50);
         attempts++;
         esp_task_wdt_reset();
       }
@@ -372,6 +385,14 @@ void applyBrightnessSettings() {
 // Wrapper for old OTA code compatibility
 void updatertc() {
   if (WiFi.isConnected()) {
-    waitForSync();  // Force NTP sync
+    // Non-blocking NTP sync (max 5 seconds)
+    unsigned long syncStart = millis();
+    while (timeStatus() == timeNotSet && millis() - syncStart < 5000) {
+      updateAnimation();
+      FastLED.show();
+      events();  // ezTime event handler
+      delay(50);
+      esp_task_wdt_reset();
+    }
   }
 }
