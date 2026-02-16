@@ -769,6 +769,80 @@ void handleCheckUpdate(AsyncWebServerRequest *request) {
   request->send(200, "application/json", response);
 }
 
+// Download and apply firmware update from URL
+void handleApplyUpdate(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+  static String updateUrl;
+  
+  // Parse request body on first chunk
+  if (index == 0) {
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, (const char*)data, len);
+    
+    if (error || !doc["downloadUrl"]) {
+      request->send(400, "application/json", "{\"error\":\"Missing downloadUrl parameter\"}");
+      return;
+    }
+    
+    updateUrl = doc["downloadUrl"].as<String>();
+    Serial.printf("🔄 Starting OTA update from: %s\n", updateUrl.c_str());
+  }
+  
+  // Process when complete
+  if (index + len == total) {
+    HTTPClient http;
+    http.begin(updateUrl);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    
+    int httpCode = http.GET();
+    
+    if (httpCode == HTTP_CODE_OK) {
+      int contentLength = http.getSize();
+      
+      if (contentLength > 0) {
+        bool canBegin = Update.begin(contentLength);
+        
+        if (canBegin) {
+          WiFiClient *client = http.getStreamPtr();
+          size_t written = Update.writeStream(*client);
+          
+          if (written == contentLength) {
+            Serial.println("✅ Firmware downloaded successfully");
+          } else {
+            Serial.printf("⚠️ Only wrote %d of %d bytes\n", written, contentLength);
+          }
+          
+          if (Update.end()) {
+            if (Update.isFinished()) {
+              Serial.println("🎉 Update successful! Rebooting...");
+              request->send(200, "application/json", "{\"success\":true,\"message\":\"Update applied, rebooting...\"}");
+              delay(1000);
+              ESP.restart();
+            } else {
+              Serial.println("❌ Update not finished");
+              request->send(500, "application/json", "{\"error\":\"Update incomplete\"}");
+            }
+          } else {
+            Serial.printf("❌ Update error: %s\n", Update.errorString());
+            request->send(500, "application/json", "{\"error\":\"Update failed\"}");
+          }
+        } else {
+          Serial.println("❌ Not enough space for update");
+          request->send(500, "application/json", "{\"error\":\"Insufficient space\"}");
+        }
+      } else {
+        Serial.println("❌ Content length is 0");
+        request->send(500, "application/json", "{\"error\":\"Empty firmware file\"}");
+      }
+    } else {
+      Serial.printf("❌ HTTP error downloading firmware: %d\n", httpCode);
+      request->send(500, "application/json", "{\"error\":\"Failed to download firmware\"}");
+    }
+    
+    http.end();
+    updateUrl = "";  // Clear URL
+  }
+}
+
 void handleRestart(AsyncWebServerRequest *request) {
   request->send(200, "application/json", "{\"success\":true,\"message\":\"Restarting...\"}");
   delay(1000);
@@ -985,9 +1059,13 @@ void setupAPI(AsyncWebServer &server) {
   // Time Sync
   server.on("/api/time/sync", HTTP_POST, handleSyncTime);
   
-  // Firmware Management
-  server.on("/api/firmware", HTTP_GET, handleGetFirmware);
+  // Firmware Management (specific routes first!)
   server.on("/api/firmware/check-update", HTTP_GET, handleCheckUpdate);
+  server.on("/api/firmware/apply-update", HTTP_POST, 
+    [](AsyncWebServerRequest *request) {}, 
+    nullptr, 
+    handleApplyUpdate);
+  server.on("/api/firmware", HTTP_GET, handleGetFirmware);
   
   // System Control
   server.on("/api/system/restart", HTTP_POST, handleRestart);

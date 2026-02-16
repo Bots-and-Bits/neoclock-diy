@@ -5,10 +5,13 @@
   let updateInfo = null;
   let uploading = false;
   let checking = false;
+  let installing = false;
   let uploadProgress = 0;
   let message = '';
   let messageType = '';
   let fileInput;
+  let showUpdateModal = false;
+  let showUploadModal = false;
 
   async function fetchFirmwareInfo() {
     try {
@@ -43,6 +46,58 @@
     checking = false;
   }
 
+  function promptInstallUpdate() {
+    showUpdateModal = true;
+  }
+
+  async function installUpdate() {
+    if (!updateInfo || !updateInfo.downloadUrl) {
+      message = 'No update URL available';
+      messageType = 'error';
+      return;
+    }
+
+    showUpdateModal = false;
+    installing = true;
+    message = 'Downloading and installing update...';
+    messageType = 'success';
+
+    try {
+      const response = await fetch('/api/firmware/apply-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          downloadUrl: updateInfo.downloadUrl
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        message = '✅ Update successful! Device is restarting...';
+        messageType = 'success';
+        
+        // Wait for device to restart
+        setTimeout(() => {
+          message = 'Please wait while device restarts (30 seconds)...';
+          setTimeout(() => {
+            window.location.reload();
+          }, 30000);
+        }, 2000);
+      } else {
+        message = 'Update failed: ' + (result.error || 'Unknown error');
+        messageType = 'error';
+        installing = false;
+      }
+    } catch (error) {
+      message = 'Update failed: ' + error.message;
+      messageType = 'error';
+      installing = false;
+    }
+  }
+
   async function uploadFirmware() {
     const file = fileInput.files[0];
     if (!file) {
@@ -57,10 +112,7 @@
       return;
     }
 
-    if (!confirm('Upload firmware and restart device? This will take about 30 seconds.')) {
-      return;
-    }
-
+    showUploadModal = false;
     uploading = true;
     uploadProgress = 0;
     message = '';
@@ -85,6 +137,14 @@
           
           // Clear file input
           fileInput.value = '';
+          
+          // Wait for device to restart
+          setTimeout(() => {
+            message = 'Please wait while device restarts (30 seconds)...';
+            setTimeout(() => {
+              window.location.reload();
+            }, 30000);
+          }, 2000);
         } else {
           message = 'Upload failed: ' + xhr.statusText;
           messageType = 'error';
@@ -178,14 +238,23 @@
                   {updateInfo.releaseNotes}
                 </div>
               {/if}
-              <a
-                href={updateInfo.downloadUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-block px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm"
-              >
-                Download Firmware
-              </a>
+              <div class="flex gap-2">
+                <button
+                  on:click={promptInstallUpdate}
+                  disabled={installing}
+                  class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm font-medium"
+                >
+                  {installing ? 'Installing...' : 'Install Update'}
+                </button>
+                <a
+                  href={updateInfo.downloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-block px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors text-sm"
+                >
+                  Download Manually
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -234,24 +303,13 @@
         </div>
       {:else}
         <button
-          on:click={uploadFirmware}
+          on:click={() => showUploadModal = true}
           disabled={!fileInput || uploading}
           class="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed rounded-lg transition-all font-medium"
         >
           Upload & Install
         </button>
       {/if}
-
-      <div class="bg-yellow-600/20 border border-yellow-500 rounded-lg p-4">
-        <div class="flex items-start gap-3">
-          <svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <div class="text-sm text-yellow-200">
-            <strong>Warning:</strong> Device will restart after upload. Do not disconnect power during the update process.
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -262,3 +320,110 @@
     </div>
   {/if}
 </div>
+<!-- Update Confirmation Modal -->
+{#if showUpdateModal}
+  <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-800 rounded-lg max-w-md w-full border border-gray-600 shadow-2xl">
+      <div class="p-6">
+        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          Confirm Update
+        </h3>
+        
+        <div class="mb-6 space-y-3">
+          <p class="text-gray-300">
+            You are about to install version <span class="font-bold text-green-400">{updateInfo?.latestVersion}</span>.
+          </p>
+          
+          <div class="bg-yellow-600/20 border border-yellow-500 rounded-lg p-4">
+            <div class="flex gap-2">
+              <svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div class="text-sm text-yellow-200">
+                <strong>Warning - Do at your own risk:</strong>
+                <ul class="mt-2 space-y-1 list-disc list-inside">
+                  <li>Device will restart automatically</li>
+                  <li>Do not disconnect power during update</li>
+                  <li>Update takes approximately 30 seconds</li>
+                  <li>Page will reload after restart</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            on:click={() => showUpdateModal = false}
+            class="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            on:click={installUpdate}
+            class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors font-medium"
+          >
+            Install Now
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Upload Confirmation Modal -->
+{#if showUploadModal}
+  <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-800 rounded-lg max-w-md w-full border border-gray-600 shadow-2xl">
+      <div class="p-6">
+        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          Confirm Upload
+        </h3>
+        
+        <div class="mb-6 space-y-3">
+          <p class="text-gray-300">
+            You are about to upload and install firmware file <span class="font-bold text-purple-400">{fileInput?.files[0]?.name}</span>.
+          </p>
+          
+          <div class="bg-yellow-600/20 border border-yellow-500 rounded-lg p-4">
+            <div class="flex gap-2">
+              <svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div class="text-sm text-yellow-200">
+                <strong>Warning - Do at your own risk:</strong>
+                <ul class="mt-2 space-y-1 list-disc list-inside">
+                  <li>Device will restart automatically</li>
+                  <li>Do not disconnect power during update</li>
+                  <li>Update takes approximately 30 seconds</li>
+                  <li>Page will reload after restart</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            on:click={() => showUploadModal = false}
+            class="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            on:click={uploadFirmware}
+            class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors font-medium"
+          >
+            Upload Now
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
