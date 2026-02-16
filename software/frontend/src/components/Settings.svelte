@@ -32,6 +32,8 @@
   let showTimezoneDropdown = false;
   let userIsEditing = false;  // Track if user is actively editing
   let editingTimeoutId = null;
+  let useCustomUTC = false;
+  let customUTCOffset = '+0:00';
   
   // Reactively update colorHex when localConfig color changes (but not while editing)
   $: if (!userIsEditing && localConfig && localConfig.display && localConfig.display.color) {
@@ -70,6 +72,7 @@
       const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (detectedTz && localConfig) {
         blockParentUpdates();
+        useCustomUTC = false;
         localConfig.time.timezone = detectedTz;
         timezoneSearch = detectedTz;
         message = `Timezone auto-detected: ${detectedTz}`;
@@ -82,6 +85,27 @@
       messageType = 'error';
       setTimeout(() => { message = ''; }, 3000);
     }
+  }
+  
+  function applyCustomUTC() {
+    if (!localConfig || !customUTCOffset) return;
+    
+    // Validate format: +X:XX or -X:XX
+    const match = customUTCOffset.match(/^([+-])(\d{1,2}):(\d{2})$/);
+    if (!match) {
+      message = 'Invalid format. Use +3:30 or -5:00';
+      messageType = 'error';
+      setTimeout(() => { message = ''; }, 3000);
+      return;
+    }
+    
+    blockParentUpdates();
+    localConfig.time.timezone = `UTC${customUTCOffset}`;
+    timezoneSearch = `UTC${customUTCOffset}`;
+    message = `Custom UTC offset applied: ${customUTCOffset}`;
+    messageType = 'success';
+    setTimeout(() => { message = ''; }, 3000);
+    saveConfigImmediately();
   }
   
   // Fetch validated timezone list from backend
@@ -619,6 +643,46 @@
           <p class="text-xs text-gray-500 mt-1">
             Current: {localConfig.time.timezone}
           </p>
+        </div>
+
+        <!-- Custom UTC Offset Option -->
+        <div class="border-t border-gray-600 pt-4">
+          <label class="flex items-center gap-2 mb-3">
+            <input
+              type="checkbox"
+              bind:checked={useCustomUTC}
+              class="w-4 h-4 bg-gray-800 border-gray-600 rounded focus:ring-2 focus:ring-purple-500"
+            />
+            <span class="text-sm text-gray-300">Use custom UTC offset (if your timezone is not listed)</span>
+          </label>
+          
+          {#if useCustomUTC}
+            <div class="flex gap-2 items-end">
+              <div class="flex-1">
+                <label for="utcOffset" class="block text-xs text-gray-400 mb-1">
+                  UTC Offset (e.g., +3:30 or -5:00)
+                </label>
+                <input
+                  id="utcOffset"
+                  type="text"
+                  bind:value={customUTCOffset}
+                  on:click={() => blockParentUpdates()}
+                  placeholder="+0:00"
+                  class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-mono"
+                />
+              </div>
+              <button
+                type="button"
+                on:click={applyCustomUTC}
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm whitespace-nowrap"
+              >
+                ✓ Apply
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+              ⚠️ Custom UTC offsets don't support daylight saving time (DST)
+            </p>
+          {/if}
         </div>
       </div>
       {/if}

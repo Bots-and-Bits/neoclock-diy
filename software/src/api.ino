@@ -16,7 +16,7 @@ extern bool configDirty;
 //  ============= STATUS & INFO =============
 
 void handleGetStatus(AsyncWebServerRequest *request) {
-  DynamicJsonDocument doc(512);
+  JsonDocument doc;
   
   // System info
   doc["system"]["uptime"] = millis() / 1000;
@@ -42,7 +42,7 @@ void handleGetStatus(AsyncWebServerRequest *request) {
 }
 
 void handleGetConfig(AsyncWebServerRequest *request) {
-  DynamicJsonDocument doc(1024);  // Explicit size for nested structure
+  JsonDocument doc;  // Explicit size for nested structure
   
   Serial.println("📋 /api/config requested");
   
@@ -102,7 +102,7 @@ void handleGetConfig(AsyncWebServerRequest *request) {
 // ============= TIME =============
 
 void handleGetTime(AsyncWebServerRequest *request) {
-  DynamicJsonDocument doc(256);
+  JsonDocument doc;
   
   // Format current time
   char timeStr[6];
@@ -122,7 +122,7 @@ void handleGetTime(AsyncWebServerRequest *request) {
 // ============= WIFI MANAGEMENT =============
 
 void handleWiFiStatus(AsyncWebServerRequest *request) {
-  DynamicJsonDocument doc(256);
+  JsonDocument doc;
   
   doc["connected"] = WiFi.isConnected();
   if (WiFi.isConnected()) {
@@ -142,7 +142,7 @@ void handleWiFiStatus(AsyncWebServerRequest *request) {
 void handleWiFiScan(AsyncWebServerRequest *request) {
   int networksFound = WiFi.scanNetworks();
   
-  DynamicJsonDocument doc(2048);  // Dynamic for variable network list
+  JsonDocument doc;  // Dynamic for variable network list
   JsonArray networks = doc["networks"].to<JsonArray>();
   
   for (int i = 0; i < networksFound; i++) {
@@ -172,7 +172,7 @@ void handleWiFiConnect(AsyncWebServerRequest *request, uint8_t *data, size_t len
   
   // Process when complete
   if (index + len == total) {
-    DynamicJsonDocument doc(256);
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, wifiConnectBody);
     
     if (error || !doc["ssid"] || !doc["password"]) {
@@ -238,7 +238,7 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
   
   // Process when complete
   if (index + len == total) {
-    DynamicJsonDocument doc(2048);  // Large doc for full config
+    JsonDocument doc;  // Large doc for full config
     DeserializationError error = deserializeJson(doc, configUpdateBody);
     
     if (error) {
@@ -325,13 +325,29 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       if (oldTZ != newTZ) {
         // Update timezone immediately (no restart needed with ezTime)
         Serial.printf("🌍 Changing timezone to: %s\n", config.time.timezone);
-        if (!myTZ.setLocation(config.time.timezone)) {
-          Serial.println("❌ Timezone lookup failed (network/server issue)");
-          timezoneError = true;
-          // Revert to old timezone
-          oldTZ.toCharArray(config.time.timezone, sizeof(config.time.timezone));
+        
+        // Check if custom UTC offset (e.g., "UTC+3:30")
+        if (newTZ.startsWith("UTC")) {
+          String offset = newTZ.substring(3); // Get "+3:30" part
+          // Convert to POSIX format: UTC+3:30 -> <+0330>-3:30
+          String posix = "<" + offset + ">-" + offset.substring(1); // Remove + or - for second part
+          if (myTZ.setPosix(posix)) {
+            Serial.printf("✅ Custom UTC offset applied: %s (POSIX: %s)\n", config.time.timezone, posix.c_str());
+          } else {
+            Serial.println("❌ Invalid UTC offset format");
+            timezoneError = true;
+            oldTZ.toCharArray(config.time.timezone, sizeof(config.time.timezone));
+          }
         } else {
-          Serial.printf("✅ Timezone changed successfully to: %s\n", config.time.timezone);
+          // Standard IANA timezone lookup
+          if (!myTZ.setLocation(config.time.timezone)) {
+            Serial.println("❌ Timezone lookup failed (network/server issue)");
+            timezoneError = true;
+            // Revert to old timezone
+            oldTZ.toCharArray(config.time.timezone, sizeof(config.time.timezone));
+          } else {
+            Serial.printf("✅ Timezone changed successfully to: %s\n", config.time.timezone);
+          }
         }
       }
     }
@@ -535,7 +551,7 @@ void handleDisplayTest(AsyncWebServerRequest *request) {
 
 void handleDisplayUpdate(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
   // Real-time display updates (no save, no animations)
-  DynamicJsonDocument doc(256);
+  JsonDocument doc;
   DeserializationError error = deserializeJson(doc, data, len);
   
   if (error) {
@@ -605,7 +621,7 @@ void handleSyncTime(AsyncWebServerRequest *request) {
 // ============= SYSTEM CONTROL =============
 
 void handleGetFirmware(AsyncWebServerRequest *request) {
-  DynamicJsonDocument doc(256);
+  JsonDocument doc;
   
   doc["version"] = FIRMWARE_VERSION;
   doc["updateURL"] = config.firmware.updateURL;
@@ -651,7 +667,7 @@ int compareVersions(String v1, String v2) {
 
 void handleCheckUpdate(AsyncWebServerRequest *request) {
   HTTPClient http;
-  DynamicJsonDocument responseDoc(512);
+  JsonDocument responseDoc;
   
   // Check if update URL is configured
   if (strlen(config.firmware.updateURL) == 0) {
@@ -675,7 +691,7 @@ void handleCheckUpdate(AsyncWebServerRequest *request) {
   
   if (httpCode == HTTP_CODE_OK) {
     String payload = http.getString();
-    DynamicJsonDocument githubDoc(2048);
+    JsonDocument githubDoc;
     DeserializationError error = deserializeJson(githubDoc, payload);
     
     if (!error) {
@@ -762,16 +778,16 @@ void handleRestart(AsyncWebServerRequest *request) {
 // ============= LANGUAGE MANAGEMENT =============
 
 void handleGetLanguages(AsyncWebServerRequest *request) {
-  DynamicJsonDocument doc(512);
+  JsonDocument doc;
   
   // Get list of available languages from language manager
   int count = langManager.getCount();
   
-  JsonArray languagesArray = doc.createNestedArray("languages");
+  JsonArray languagesArray = doc["languages"].to<JsonArray>();
   for (int i = 0; i < count; i++) {
     LanguageInterface* lang = langManager.getByIndex(i);
     if (lang != nullptr) {
-      JsonObject langObj = languagesArray.createNestedObject();
+      JsonObject langObj = languagesArray.add<JsonObject>();
       langObj["code"] = lang->getCode();
       langObj["name"] = lang->getName();
     }
@@ -786,7 +802,7 @@ void handleGetLanguages(AsyncWebServerRequest *request) {
 }
 
 void handleGetCurrentLanguage(AsyncWebServerRequest *request) {
-  DynamicJsonDocument doc(256);
+  JsonDocument doc;
   
   doc["language"] = config.display.language;
   doc["isActive"] = (langManager.getActive() != nullptr);
@@ -799,7 +815,7 @@ void handleGetCurrentLanguage(AsyncWebServerRequest *request) {
 void handleSetLanguage(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
   if (index == 0) {
     // First chunk - parse JSON
-    DynamicJsonDocument doc(256);
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, (const char*)data, len);
     
     if (error) {
@@ -827,7 +843,7 @@ void handleSetLanguage(AsyncWebServerRequest *request, uint8_t *data, size_t len
       
       Serial.printf("✅ Language changed to: %s\n", newLang);
       
-      DynamicJsonDocument responseDoc(256);
+      JsonDocument responseDoc;
       responseDoc["success"] = true;
       responseDoc["language"] = newLang;
       
@@ -837,7 +853,7 @@ void handleSetLanguage(AsyncWebServerRequest *request, uint8_t *data, size_t len
     } else {
       Serial.printf("❌ Language '%s' not available\n", newLang);
       
-      DynamicJsonDocument responseDoc(256);
+      JsonDocument responseDoc;
       responseDoc["error"] = "Language not available";
       responseDoc["requested"] = newLang;
       
@@ -853,13 +869,13 @@ void handleSetLanguage(AsyncWebServerRequest *request, uint8_t *data, size_t len
 void handleGetTimezones(AsyncWebServerRequest *request) {
   // Return a curated list of common timezones that work with ezTime
   // Excludes known problematic zones: Iran (Solar Hijri calendar), Israel (complex political DST)
-  DynamicJsonDocument doc(4096);
-  JsonArray timezones = doc.createNestedArray("timezones");
+  JsonDocument doc;
+  JsonArray timezones = doc["timezones"].to<JsonArray>();
   
   // Europe
-  JsonObject europe = timezones.createNestedObject();
+  JsonObject europe = timezones.add<JsonObject>();
   europe["region"] = "Europe";
-  JsonArray europezones = europe.createNestedArray("zones");
+  JsonArray europezones = europe["zones"].to<JsonArray>();
   europezones.add("Europe/London"); europezones.add("Europe/Paris"); europezones.add("Europe/Berlin");
   europezones.add("Europe/Rome"); europezones.add("Europe/Madrid"); europezones.add("Europe/Amsterdam");
   europezones.add("Europe/Brussels"); europezones.add("Europe/Vienna"); europezones.add("Europe/Stockholm");
@@ -869,9 +885,9 @@ void handleGetTimezones(AsyncWebServerRequest *request) {
   europezones.add("Europe/Zurich"); europezones.add("Europe/Dublin");
   
   // America
-  JsonObject america = timezones.createNestedObject();
+  JsonObject america = timezones.add<JsonObject>();
   america["region"] = "America";
-  JsonArray americazones = america.createNestedArray("zones");
+  JsonArray americazones = america["zones"].to<JsonArray>();
   americazones.add("America/New_York"); americazones.add("America/Chicago"); americazones.add("America/Denver");
   americazones.add("America/Los_Angeles"); americazones.add("America/Toronto"); americazones.add("America/Vancouver");
   americazones.add("America/Mexico_City"); americazones.add("America/Sao_Paulo"); americazones.add("America/Buenos_Aires");
@@ -880,9 +896,9 @@ void handleGetTimezones(AsyncWebServerRequest *request) {
   americazones.add("America/Caracas");
   
   // Asia (excluding Tehran, Tel Aviv, Jerusalem, Gaza, Amman - known broken)
-  JsonObject asia = timezones.createNestedObject();
+  JsonObject asia = timezones.add<JsonObject>();
   asia["region"] = "Asia";
-  JsonArray asiazones = asia.createNestedArray("zones");
+  JsonArray asiazones = asia["zones"].to<JsonArray>();
   asiazones.add("Asia/Tokyo"); asiazones.add("Asia/Shanghai"); asiazones.add("Asia/Hong_Kong");
   asiazones.add("Asia/Singapore"); asiazones.add("Asia/Seoul"); asiazones.add("Asia/Bangkok");
   asiazones.add("Asia/Dubai"); asiazones.add("Asia/Kolkata"); asiazones.add("Asia/Jakarta");
@@ -891,17 +907,17 @@ void handleGetTimezones(AsyncWebServerRequest *request) {
   asiazones.add("Asia/Damascus");
   
   // Pacific
-  JsonObject pacific = timezones.createNestedObject();
+  JsonObject pacific = timezones.add<JsonObject>();
   pacific["region"] = "Pacific";
-  JsonArray pacificzones = pacific.createNestedArray("zones");
+  JsonArray pacificzones = pacific["zones"].to<JsonArray>();
   pacificzones.add("Pacific/Auckland"); pacificzones.add("Pacific/Sydney"); pacificzones.add("Pacific/Melbourne");
   pacificzones.add("Pacific/Brisbane"); pacificzones.add("Pacific/Fiji"); pacificzones.add("Pacific/Guam");
   pacificzones.add("Pacific/Honolulu"); pacificzones.add("Pacific/Tahiti");
   
   // Africa
-  JsonObject africa = timezones.createNestedObject();
+  JsonObject africa = timezones.add<JsonObject>();
   africa["region"] = "Africa";
-  JsonArray africazones = africa.createNestedArray("zones");
+  JsonArray africazones = africa["zones"].to<JsonArray>();
   africazones.add("Africa/Cairo"); africazones.add("Africa/Johannesburg"); africazones.add("Africa/Lagos");
   africazones.add("Africa/Nairobi"); africazones.add("Africa/Casablanca"); africazones.add("Africa/Algiers");
   africazones.add("Africa/Tunis"); africazones.add("Africa/Accra");
@@ -912,7 +928,7 @@ void handleGetTimezones(AsyncWebServerRequest *request) {
 }
 
 void handleTestTimezone(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-  DynamicJsonDocument doc(256);
+  JsonDocument doc;
   DeserializationError error = deserializeJson(doc, data, len);
   
   if (error) {
@@ -930,7 +946,7 @@ void handleTestTimezone(AsyncWebServerRequest *request, uint8_t *data, size_t le
   Timezone testTZ;
   bool success = testTZ.setLocation(timezone);
   
-  DynamicJsonDocument responseDoc(256);
+  JsonDocument responseDoc;
   responseDoc["timezone"] = timezone;
   responseDoc["supported"] = success;
   if (success) {

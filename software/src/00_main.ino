@@ -269,17 +269,34 @@ void setupTime() {
   
   // Set timezone with error checking and retry
   Serial.printf("🌍 Setting timezone: %s\n", config.time.timezone);
-  if (!myTZ.setLocation(config.time.timezone)) {
-    Serial.println("⚠️  Timezone lookup failed, retrying in 2 seconds...");
-    delay(2000);
-    if (!myTZ.setLocation(config.time.timezone)) {
-      Serial.println("❌ Timezone lookup failed again, using cached/UTC");
+  
+  // Check if custom UTC offset (e.g., "UTC+3:30")
+  String tz = String(config.time.timezone);
+  if (tz.startsWith("UTC")) {
+    String offset = tz.substring(3); // Get "+3:30" part
+    // Convert to POSIX format: UTC+3:30 -> <+0330>-3:30
+    String posix = "<" + offset + ">-" + offset.substring(1);
+    if (myTZ.setPosix(posix)) {
+      Serial.printf("✅ Custom UTC offset applied: %s\n", config.time.timezone);
     } else {
-      Serial.println("✅ Timezone set successfully on retry");
+      Serial.println("❌ Invalid UTC offset format, using UTC");
+      myTZ.setLocation("UTC");
     }
   } else {
-    Serial.println("✅ Timezone set successfully");
+    // Standard IANA timezone lookup
+    if (!myTZ.setLocation(config.time.timezone)) {
+      Serial.println("⚠️  Timezone lookup failed, retrying in 2 seconds...");
+      delay(2000);
+      if (!myTZ.setLocation(config.time.timezone)) {
+        Serial.println("❌ Timezone lookup failed again, using cached/UTC");
+      } else {
+        Serial.println("✅ Timezone set successfully on retry");
+      }
+    } else {
+      Serial.println("✅ Timezone set successfully");
+    }
   }
+  
   Serial.printf("🕐 Local Time: %s\n", myTZ.dateTime().c_str());
   
   lastNTPSync = millis();
