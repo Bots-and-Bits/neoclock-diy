@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   
   const dispatch = createEventDispatcher();
   
@@ -15,36 +15,18 @@
   // Reactive color hex value for color picker
   let colorHex = '#FFFFFF';
   
-  // Common timezones grouped by region
-  const timezones = [
-    { region: 'Europe', zones: [
-      'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Rome', 
-      'Europe/Madrid', 'Europe/Amsterdam', 'Europe/Brussels', 'Europe/Vienna',
-      'Europe/Stockholm', 'Europe/Oslo', 'Europe/Copenhagen', 'Europe/Helsinki',
-      'Europe/Warsaw', 'Europe/Prague', 'Europe/Budapest', 'Europe/Athens',
-      'Europe/Moscow', 'Europe/Istanbul', 'Europe/Zurich', 'Europe/Dublin'
-    ]},
-    { region: 'America', zones: [
-      'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
-      'America/Toronto', 'America/Vancouver', 'America/Mexico_City', 'America/Sao_Paulo',
-      'America/Buenos_Aires', 'America/Santiago', 'America/Lima', 'America/Bogota',
-      'America/Phoenix', 'America/Anchorage', 'America/Halifax', 'America/Caracas'
-    ]},
-    { region: 'Asia', zones: [
-      'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Singapore',
-      'Asia/Seoul', 'Asia/Bangkok', 'Asia/Dubai', 'Asia/Kolkata',
-      'Asia/Jakarta', 'Asia/Manila', 'Asia/Taipei', 'Asia/Kuala_Lumpur',
-      'Asia/Tel_Aviv', 'Asia/Tehran', 'Asia/Baghdad', 'Asia/Karachi'
-    ]},
-    { region: 'Pacific', zones: [
-      'Pacific/Auckland', 'Pacific/Sydney', 'Pacific/Melbourne', 'Pacific/Brisbane',
-      'Pacific/Fiji', 'Pacific/Guam', 'Pacific/Honolulu', 'Pacific/Tahiti'
-    ]},
-    { region: 'Africa', zones: [
-      'Africa/Cairo', 'Africa/Johannesburg', 'Africa/Lagos', 'Africa/Nairobi',
-      'Africa/Casablanca', 'Africa/Algiers', 'Africa/Tunis', 'Africa/Accra'
-    ]}
+  // Fallback timezones (minimal list in case API fetch fails)
+  const fallbackTimezones = [
+    { region: 'Europe', zones: ['Europe/London', 'Europe/Paris', 'Europe/Berlin'] },
+    { region: 'America', zones: ['America/New_York', 'America/Los_Angeles', 'America/Chicago'] },
+    { region: 'Asia', zones: ['Asia/Tokyo', 'Asia/Shanghai', 'Asia/Dubai'] },
+    { region: 'Pacific', zones: ['Pacific/Auckland', 'Pacific/Honolulu'] },
+    { region: 'Africa', zones: ['Africa/Cairo', 'Africa/Johannesburg'] }
   ];
+  
+  // Timezones fetched from backend (validated, excludes broken zones)
+  let timezones = fallbackTimezones;
+  let loadingTimezones = false;
   
   let timezoneSearch = '';
   let showTimezoneDropdown = false;
@@ -101,6 +83,48 @@
       setTimeout(() => { message = ''; }, 3000);
     }
   }
+  
+  // Fetch validated timezone list from backend
+  async function fetchTimezones() {
+    // Check sessionStorage cache first
+    const cached = sessionStorage.getItem('timezones');
+    if (cached) {
+      try {
+        timezones = JSON.parse(cached);
+        console.log('[Settings] Loaded timezones from cache');
+        return;
+      } catch (e) {
+        console.warn('[Settings] Failed to parse cached timezones:', e);
+      }
+    }
+    
+    // Fetch from backend
+    loadingTimezones = true;
+    try {
+      const response = await fetch('/api/timezones');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.timezones && Array.isArray(data.timezones)) {
+          timezones = data.timezones;
+          sessionStorage.setItem('timezones', JSON.stringify(timezones));
+          console.log('[Settings] Loaded timezones from backend:', timezones.length, 'regions');
+        } else {
+          console.warn('[Settings] Invalid timezone data format, using fallback');
+        }
+      } else {
+        console.warn('[Settings] Failed to fetch timezones:', response.status);
+      }
+    } catch (e) {
+      console.warn('[Settings] Error fetching timezones, using fallback:', e);
+    } finally {
+      loadingTimezones = false;
+    }
+  }
+  
+  // Fetch timezones on component mount
+  onMount(() => {
+    fetchTimezones();
+  });
   
   // Initialize localConfig once from parent config (never overwrite after that)
   $: {
@@ -546,7 +570,7 @@
       <div class="space-y-4">
         <div class="relative">
           <label for="timezone" class="block text-sm font-medium text-gray-300 mb-2">
-            Timezone
+            Timezone {#if loadingTimezones}<span class="text-xs text-gray-500">(loading...)</span>{/if}
           </label>
           <div class="flex gap-2">
             <div class="relative flex-1">

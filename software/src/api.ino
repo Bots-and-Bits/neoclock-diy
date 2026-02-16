@@ -848,6 +848,100 @@ void handleSetLanguage(AsyncWebServerRequest *request, uint8_t *data, size_t len
   }
 }
 
+// ============= TIMEZONE MANAGEMENT =============
+
+void handleGetTimezones(AsyncWebServerRequest *request) {
+  // Return a curated list of common timezones that work with ezTime
+  // Excludes known problematic zones: Iran (Solar Hijri calendar), Israel (complex political DST)
+  DynamicJsonDocument doc(4096);
+  JsonArray timezones = doc.createNestedArray("timezones");
+  
+  // Europe
+  JsonObject europe = timezones.createNestedObject();
+  europe["region"] = "Europe";
+  JsonArray europezones = europe.createNestedArray("zones");
+  europezones.add("Europe/London"); europezones.add("Europe/Paris"); europezones.add("Europe/Berlin");
+  europezones.add("Europe/Rome"); europezones.add("Europe/Madrid"); europezones.add("Europe/Amsterdam");
+  europezones.add("Europe/Brussels"); europezones.add("Europe/Vienna"); europezones.add("Europe/Stockholm");
+  europezones.add("Europe/Oslo"); europezones.add("Europe/Copenhagen"); europezones.add("Europe/Helsinki");
+  europezones.add("Europe/Warsaw"); europezones.add("Europe/Prague"); europezones.add("Europe/Budapest");
+  europezones.add("Europe/Athens"); europezones.add("Europe/Moscow"); europezones.add("Europe/Istanbul");
+  europezones.add("Europe/Zurich"); europezones.add("Europe/Dublin");
+  
+  // America
+  JsonObject america = timezones.createNestedObject();
+  america["region"] = "America";
+  JsonArray americazones = america.createNestedArray("zones");
+  americazones.add("America/New_York"); americazones.add("America/Chicago"); americazones.add("America/Denver");
+  americazones.add("America/Los_Angeles"); americazones.add("America/Toronto"); americazones.add("America/Vancouver");
+  americazones.add("America/Mexico_City"); americazones.add("America/Sao_Paulo"); americazones.add("America/Buenos_Aires");
+  americazones.add("America/Santiago"); americazones.add("America/Lima"); americazones.add("America/Bogota");
+  americazones.add("America/Phoenix"); americazones.add("America/Anchorage"); americazones.add("America/Halifax");
+  americazones.add("America/Caracas");
+  
+  // Asia (excluding Tehran, Tel Aviv, Jerusalem, Gaza, Amman - known broken)
+  JsonObject asia = timezones.createNestedObject();
+  asia["region"] = "Asia";
+  JsonArray asiazones = asia.createNestedArray("zones");
+  asiazones.add("Asia/Tokyo"); asiazones.add("Asia/Shanghai"); asiazones.add("Asia/Hong_Kong");
+  asiazones.add("Asia/Singapore"); asiazones.add("Asia/Seoul"); asiazones.add("Asia/Bangkok");
+  asiazones.add("Asia/Dubai"); asiazones.add("Asia/Kolkata"); asiazones.add("Asia/Jakarta");
+  asiazones.add("Asia/Manila"); asiazones.add("Asia/Taipei"); asiazones.add("Asia/Kuala_Lumpur");
+  asiazones.add("Asia/Baghdad"); asiazones.add("Asia/Karachi"); asiazones.add("Asia/Riyadh");
+  asiazones.add("Asia/Damascus");
+  
+  // Pacific
+  JsonObject pacific = timezones.createNestedObject();
+  pacific["region"] = "Pacific";
+  JsonArray pacificzones = pacific.createNestedArray("zones");
+  pacificzones.add("Pacific/Auckland"); pacificzones.add("Pacific/Sydney"); pacificzones.add("Pacific/Melbourne");
+  pacificzones.add("Pacific/Brisbane"); pacificzones.add("Pacific/Fiji"); pacificzones.add("Pacific/Guam");
+  pacificzones.add("Pacific/Honolulu"); pacificzones.add("Pacific/Tahiti");
+  
+  // Africa
+  JsonObject africa = timezones.createNestedObject();
+  africa["region"] = "Africa";
+  JsonArray africazones = africa.createNestedArray("zones");
+  africazones.add("Africa/Cairo"); africazones.add("Africa/Johannesburg"); africazones.add("Africa/Lagos");
+  africazones.add("Africa/Nairobi"); africazones.add("Africa/Casablanca"); africazones.add("Africa/Algiers");
+  africazones.add("Africa/Tunis"); africazones.add("Africa/Accra");
+  
+  String response;
+  serializeJson(doc, response);
+  request->send(200, "application/json", response);
+}
+
+void handleTestTimezone(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+  DynamicJsonDocument doc(256);
+  DeserializationError error = deserializeJson(doc, data, len);
+  
+  if (error) {
+    request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+    return;
+  }
+  
+  const char* timezone = doc["timezone"];
+  if (!timezone) {
+    request->send(400, "application/json", "{\"error\":\"Missing timezone parameter\"}");
+    return;
+  }
+  
+  // Test if timezone is supported by ezTime
+  Timezone testTZ;
+  bool success = testTZ.setLocation(timezone);
+  
+  DynamicJsonDocument responseDoc(256);
+  responseDoc["timezone"] = timezone;
+  responseDoc["supported"] = success;
+  if (success) {
+    responseDoc["posix"] = testTZ.getPosix();
+  }
+  
+  String response;
+  serializeJson(responseDoc, response);
+  request->send(200, "application/json", response);
+}
+
 // ============= REGISTER ALL API ENDPOINTS =============
 
 void setupAPI(AsyncWebServer &server) {
@@ -887,6 +981,10 @@ void setupAPI(AsyncWebServer &server) {
   server.on("/api/languages", HTTP_GET, handleGetLanguages);
   server.on("/api/languages/current", HTTP_GET, handleGetCurrentLanguage);
   server.on("/api/languages/set", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, handleSetLanguage);
+  
+  // Timezone Management
+  server.on("/api/timezones", HTTP_GET, handleGetTimezones);
+  server.on("/api/timezones/test", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, handleTestTimezone);
   
   Serial.println("✅ API endpoints registered");
 }
