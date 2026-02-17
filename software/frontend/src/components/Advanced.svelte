@@ -12,6 +12,10 @@
   let messageType = '';
   let userIsEditing = false;  // Track if user is actively editing
   let editingTimeoutId = null;
+  let showRestartModal = false;
+  let newHostname = '';
+  let restartReason = '';
+  let isRestarting = false;
   
   // Block parent updates while user is editing
   function blockParentUpdates() {
@@ -38,6 +42,9 @@
     saving = true;
     message = '';
     
+    // Store original hostname before saving
+    const originalHostname = config?.network?.hostname || 'neoclock';
+    
     try {
       const response = await fetch('/api/config', {
         method: 'PUT',
@@ -48,14 +55,22 @@
       const result = await response.json();
       
       if (result.success) {
-        message = 'Settings saved successfully!';
-        messageType = 'success';
-        
         if (result.restart) {
-          message += ' Device will restart in 2 seconds to apply hostname change.';
-          setTimeout(() => {
-            fetch('/api/restart', { method: 'POST' });
-          }, 2000);
+          // Show modal with restart information
+          newHostname = localConfig.network.hostname;
+          
+          // Determine what changed
+          if (originalHostname !== newHostname) {
+            restartReason = 'hostname';
+          } else {
+            restartReason = 'AP SSID';
+          }
+          
+          isRestarting = false; // Reset state
+          showRestartModal = true;
+        } else {
+          message = 'Settings saved successfully!';
+          messageType = 'success';
         }
       } else {
         message = 'Failed to save settings';
@@ -67,6 +82,21 @@
     }
     
     saving = false;
+  }
+  
+  function confirmRestart() {
+    isRestarting = true;
+    
+    setTimeout(() => {
+      fetch('/api/restart', { method: 'POST' });
+      
+      // If hostname changed, redirect to new URL after restart
+      if (restartReason === 'hostname') {
+        setTimeout(() => {
+          window.location.href = `http://${newHostname}.local`;
+        }, 12000); // 12 seconds: 2s delay + 10s restart time
+      }
+    }, 2000);
   }
 
   async function resetToDefaults() {
@@ -278,39 +308,9 @@
       <h3 class="text-xl font-semibold mb-4 text-orange-400">Firmware Settings</h3>
       
       <div class="space-y-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <label for="autoCheckUpdates" class="text-sm font-medium text-gray-300">
-              Automatic Update Checks
-            </label>
-            <span class="text-gray-400 cursor-help" title="Periodically check GitHub for new firmware versions on startup">ⓘ</span>
-          </div>
-          <input
-            id="autoCheckUpdates"
-            type="checkbox"
-            bind:checked={localConfig.firmware.autoCheckUpdates}
-            class="w-5 h-5 rounded bg-gray-600 border-gray-500 text-purple-600 focus:ring-purple-500 focus:ring-2"
-          />
-        </div>
-
-        {#if localConfig.firmware.autoCheckUpdates}
-          <div>
-            <div class="flex items-center gap-2 mb-2">
-              <label for="updateURL" class="block text-sm font-medium text-gray-300">
-                Update URL (GitHub Releases API)
-              </label>
-              <span class="text-gray-400 cursor-help" title="GitHub API endpoint to check for latest firmware releases">ⓘ</span>
-            </div>
-            <input
-              id="updateURL"
-              type="text"
-              bind:value={localConfig.firmware.updateURL}
-              on:input={blockParentUpdates}
-              placeholder="https://api.github.com/repos/user/repo/releases/latest"
-              class="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm font-mono"
-            />
-          </div>
-        {/if}
+        <p class="text-sm text-gray-400">
+          Firmware updates are managed through the Firmware page. Click on "Firmware" in the navigation menu to check for updates and install new versions.
+        </p>
       </div>
     </div>
 
@@ -364,3 +364,105 @@
     </div>
   {/if}
 </div>
+<!-- Restart Confirmation Modal -->
+{#if showRestartModal}
+  <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-800 rounded-lg max-w-md w-full border border-gray-600 shadow-2xl">
+      <div class="p-6">
+        {#if isRestarting}
+          <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+            <svg class="w-6 h-6 text-blue-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Device Restarting...
+          </h3>
+          
+          <div class="mb-6 space-y-3">
+            {#if restartReason === 'hostname'}
+              <p class="text-gray-300">
+                Redirecting to <span class="font-mono text-blue-400">http://{newHostname}.local</span>
+              </p>
+            {:else}
+              <p class="text-gray-300">
+                The device is restarting with the new Access Point name.
+              </p>
+            {/if}
+            
+            <div class="bg-yellow-600/20 border border-yellow-500 rounded-lg p-4">
+              <div class="flex gap-2">
+                <svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div class="text-sm text-yellow-200">
+                  <strong>Please wait:</strong>
+                  <ul class="mt-2 space-y-1 list-disc list-inside">
+                    {#if restartReason === 'hostname'}
+                      <li>Automatic redirect in approximately 12 seconds</li>
+                      <li>You may need to reload the page</li>
+                    {:else}
+                      <li>Reconnect to the new network</li>
+                      <li>Refresh this page after reconnecting</li>
+                    {/if}
+                    <li>Do not disconnect power during restart</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        {:else}
+          <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+            <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            Confirm Restart
+          </h3>
+        
+        <div class="mb-6 space-y-3">
+          <p class="text-gray-300">
+            Settings saved successfully! The device will restart to apply the {restartReason} change.
+          </p>
+          
+          <div class="bg-yellow-600/20 border border-yellow-500 rounded-lg p-4">
+            <div class="flex gap-2">
+              <svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div class="text-sm text-yellow-200">
+                <strong>Warning:</strong>
+                <ul class="mt-2 space-y-1 list-disc list-inside">
+                  {#if restartReason === 'hostname'}
+                    <li>You'll be redirected to: <span class="font-mono text-blue-300">http://{newHostname}.local</span></li>
+                    <li>Bookmark the new URL</li>
+                  {:else}
+                    <li>Access Point name will change</li>
+                    <li>You'll need to reconnect to the new network</li>
+                  {/if}
+                  <li>Restart takes approximately 10 seconds</li>
+                  <li>Do not disconnect power during restart</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {#if !isRestarting}
+          <div class="flex gap-3">
+            <button
+              on:click={() => { showRestartModal = false; isRestarting = false; }}
+              class="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              on:click={confirmRestart}
+              class="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors font-medium"
+            >
+              Restart Now
+            </button>
+          </div>
+        {/if}
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}

@@ -371,8 +371,12 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     }
     if (!doc["network"]["apSSID"].isNull()) {
       String newAPSSID = doc["network"]["apSSID"].as<String>();
-      newAPSSID.toCharArray(config.network.apSSID, sizeof(config.network.apSSID));
-      Serial.printf("📡 AP SSID changed to: %s\n", config.network.apSSID);
+      String oldAPSSID = String(config.network.apSSID);
+      if (newAPSSID != oldAPSSID) {
+        newAPSSID.toCharArray(config.network.apSSID, sizeof(config.network.apSSID));
+        Serial.printf("📡 AP SSID changed to: %s\n", config.network.apSSID);
+        needsRestart = true;  // AP SSID change requires restart
+      }
     }
     
     // Firmware settings
@@ -386,8 +390,14 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       Serial.printf("✅ Auto check updates: %s\n", config.firmware.autoCheckUpdates ? "enabled" : "disabled");
     }
     
-    // Defer save to reduce flash wear
-    markConfigDirty();
+    // Save immediately if restart is needed (don't rely on periodic save)
+    if (needsRestart) {
+      Serial.println("💾 Saving config immediately before restart");
+      saveConfigImmediate();
+    } else {
+      // Defer save to reduce flash wear
+      markConfigDirty();
+    }
     
     String response = "{\"success\":true";
     if (needsRestart) {
