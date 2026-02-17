@@ -28,7 +28,7 @@ extern int minutes;
 
 // LED_COUNT is defined as a macro in 00_main.ino
 #ifndef LED_COUNT
-#define LED_COUNT 115
+#define LED_COUNT 114
 #endif
 
 // Main pipeline function - call this after language sets active LEDs

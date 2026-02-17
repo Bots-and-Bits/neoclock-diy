@@ -34,24 +34,28 @@ uint8_t beatSin(uint8_t bpm, uint8_t lowest = 0, uint8_t highest = 255) {
 void animationStartup() {
   Serial.println("🌈 Animation: Startup");
   
-  // Rainbow sweep across all LEDs (reduced brightness to prevent brownout)
+  // Use configured brightness (respect user's setting)
+  FastLED.setBrightness(config.display.brightness);
+  
+  // Rainbow sweep across all LEDs at full LED brightness
   for (int hue = 0; hue < 256; hue += 2) {
     for (int i = 0; i < LED_COUNT; i++) {
-      leds[i] = CHSV(hue + (i * 256 / LED_COUNT), 255, 64);  // 25% brightness
+      leds[i] = CHSV(hue + (i * 256 / LED_COUNT), 255, 255);  // 100% brightness
     }
     FastLED.show();
     delay(10);
   }
   
   // Fade out
-  for (int brightness = 64; brightness > 0; brightness -= 3) {
-    FastLED.setBrightness(brightness);
+  for (int brightness = 255; brightness > 0; brightness -= 8) {
+    for (int i = 0; i < LED_COUNT; i++) {
+      leds[i].fadeToBlackBy(8);
+    }
     FastLED.show();
     delay(20);
   }
   
   clearAllLEDs();
-  FastLED.setBrightness(config.display.brightness);
 }
 
 // ============= WIFI SEARCHING ANIMATION (non-blocking) =============

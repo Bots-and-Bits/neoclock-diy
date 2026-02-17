@@ -30,7 +30,7 @@
 
 // ============= LED CONFIGURATION =============
 #ifndef LED_COUNT
-#define LED_COUNT 115
+#define LED_COUNT 114
 #endif
 
 #ifndef LED_PIN

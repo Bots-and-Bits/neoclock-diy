@@ -120,37 +120,57 @@
   }
 
   function copyToClipboard(text) {
+    // Try modern clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(() => {
         message = 'Copied to clipboard!';
         messageType = 'success';
         setTimeout(() => { message = ''; }, 2000);
       }).catch((err) => {
-        console.error('Failed to copy:', err);
-        message = 'Failed to copy to clipboard';
-        messageType = 'error';
-        setTimeout(() => { message = ''; }, 2000);
+        console.error('Clipboard API failed:', err);
+        // Fallback to execCommand
+        fallbackCopy(text);
       });
     } else {
-      // Fallback for browsers without clipboard API
+      // Use fallback immediately if clipboard API not available
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    try {
       const textArea = document.createElement('textarea');
       textArea.value = text;
       textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.width = '2em';
+      textArea.style.height = '2em';
+      textArea.style.padding = '0';
+      textArea.style.border = 'none';
+      textArea.style.outline = 'none';
+      textArea.style.boxShadow = 'none';
+      textArea.style.background = 'transparent';
       document.body.appendChild(textArea);
+      textArea.focus();
       textArea.select();
-      try {
-        document.execCommand('copy');
+      
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      if (successful) {
         message = 'Copied to clipboard!';
         messageType = 'success';
-        setTimeout(() => { message = ''; }, 2000);
-      } catch (err) {
-        console.error('Fallback copy failed:', err);
-        message = 'Failed to copy to clipboard';
+      } else {
+        message = 'Copy failed - please copy manually';
         messageType = 'error';
-        setTimeout(() => { message = ''; }, 2000);
       }
-      document.body.removeChild(textArea);
+      setTimeout(() => { message = ''; }, 2000);
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+      message = 'Copy failed - please copy manually';
+      messageType = 'error';
+      setTimeout(() => { message = ''; }, 2000);
     }
   }
 </script>
