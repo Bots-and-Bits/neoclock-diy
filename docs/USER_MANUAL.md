@@ -62,25 +62,34 @@ Tip: if the dashboard is empty after a reboot, hard-refresh the page (Cmd/Ctrl+S
 
 The Firmware tab allows you to update the device's software wirelessly (Over-The-Air / OTA).
 
-**How to upload new firmware:**
+**Automatic Updates (Recommended):**
+1. Go to Settings → Firmware tab
+2. Click "Check for Updates" button to check GitHub for new versions
+3. If an update is available, you'll see the new version number and release notes
+4. Click "Install Update" button
+5. Confirm the update (warning modal appears)
+6. Wait for download and installation (~15-30 seconds)
+7. Device automatically reboots with new firmware
+8. Page will be redirected automatically after reboot
+9. Hard refresh your browser (Cmd/Ctrl+Shift+R) if UI looks stale
+
+**Manual Firmware Upload (Advanced):**
 1. Obtain a `.bin` firmware file (from GitHub releases or built locally)
 2. Go to Settings → Firmware tab
-3. Click "Choose File" and select the `.bin` file
-4. Click "Upload Firmware"
-5. Confirm the upload (device will be unreachable for ~30 seconds)
+3. Click "Choose File" in the Manual Upload section
+4. Select the `.bin` file
+5. Click "Upload" and confirm
 6. Wait for upload to complete (progress bar shown)
-7. Device will automatically reboot with new firmware
+7. Device will automatically reboot
 8. Hard refresh your browser (Cmd/Ctrl+Shift+R) after reboot
 
 **Notes:**
-- Upload takes 10-30 seconds depending on file size and WiFi speed
+- Automatic updates download directly from GitHub - no manual download needed
+- Update process takes 15-30 seconds depending on WiFi speed and file size
 - Device will lose connectivity during the update - this is normal
+- After successful update, the version number changes (visible on Dashboard)
 - Only upload firmware files designed for your specific hardware
-- After successful update, the version number will change (visible on Dashboard)
-
-**Auto-check updates** (future feature):
-- Will check GitHub releases for new versions
-- Currently a placeholder - manual uploads only
+- **Warning:** Do not disconnect power during firmware updates
 
 ---
 
