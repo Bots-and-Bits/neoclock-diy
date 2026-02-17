@@ -72,8 +72,6 @@ void loadConfig() {
     strcpy(config.firmware.version, FIRMWARE_VERSION);
   }
   preferences.getString("update_url", config.firmware.updateURL, sizeof(config.firmware.updateURL));
-  config.firmware.autoCheckUpdates = preferences.getBool("auto_update", true);
-  config.firmware.updateCheckInterval = preferences.getUInt("update_int", 86400);
   
   preferences.end();
   
@@ -117,8 +115,6 @@ void saveConfig() {
   // Save firmware settings
   preferences.putString("fw_version", config.firmware.version);
   preferences.putString("update_url", config.firmware.updateURL);
-  preferences.putBool("auto_update", config.firmware.autoCheckUpdates);
-  preferences.putUInt("update_int", config.firmware.updateCheckInterval);
   
   preferences.end();
   
@@ -179,8 +175,6 @@ void printConfig() {
   Serial.println("\n[Firmware]");
   Serial.printf("  Version: %s\n", config.firmware.version);
   Serial.printf("  Update URL: %s\n", config.firmware.updateURL);
-  Serial.printf("  Auto Check Updates: %s\n", config.firmware.autoCheckUpdates ? "Yes" : "No");
-  Serial.printf("  Update Check Interval: %d seconds\n", config.firmware.updateCheckInterval);
   
   Serial.println("==========================================\n");
 }

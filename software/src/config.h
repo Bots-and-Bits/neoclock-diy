@@ -49,16 +49,13 @@ struct NetworkConfig {
   char ssid[64] = "";
   char password[64] = "";
   char hostname[32] = "neoclock";
-  bool apMode = false;               // Access Point mode when no WiFi
   char apSSID[32] = "Neoclock-Setup";
   // No AP password - hotspot is always open for easy setup
 };
 
 struct FirmwareConfig {
-  char version[16] = "4.0.0";
+  char version[16] = "";  // Populated from FIRMWARE_VERSION build flag
   char updateURL[128] = "https://api.github.com/repos/Bots-and-Bits/neoclock-diy/releases/latest";
-  bool autoCheckUpdates = true;
-  uint32_t updateCheckInterval = 86400;  // Check daily (seconds)
 };
 
 struct Config {

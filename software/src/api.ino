@@ -80,7 +80,6 @@ void handleGetConfig(AsyncWebServerRequest *request) {
   // Firmware settings
   doc["firmware"]["version"] = config.firmware.version;
   doc["firmware"]["updateURL"] = config.firmware.updateURL;
-  doc["firmware"]["autoCheckUpdates"] = config.firmware.autoCheckUpdates;
   
   String response;
   size_t len = serializeJson(doc, response);
@@ -385,10 +384,6 @@ void handleSaveConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       newUpdateURL.toCharArray(config.firmware.updateURL, sizeof(config.firmware.updateURL));
       Serial.printf("🔗 Update URL changed to: %s\n", config.firmware.updateURL);
     }
-    if (!doc["firmware"]["autoCheckUpdates"].isNull()) {
-      config.firmware.autoCheckUpdates = doc["firmware"]["autoCheckUpdates"];
-      Serial.printf("✅ Auto check updates: %s\n", config.firmware.autoCheckUpdates ? "enabled" : "disabled");
-    }
     
     // Save immediately if restart is needed (don't rely on periodic save)
     if (needsRestart) {
@@ -635,7 +630,6 @@ void handleGetFirmware(AsyncWebServerRequest *request) {
   
   doc["version"] = FIRMWARE_VERSION;
   doc["updateURL"] = config.firmware.updateURL;
-  doc["autoCheckUpdates"] = config.firmware.autoCheckUpdates;
   
   String response;
   serializeJson(doc, response);
@@ -1078,8 +1072,7 @@ void setupAPI(AsyncWebServer &server) {
   server.on("/api/firmware", HTTP_GET, handleGetFirmware);
   
   // System Control
-  server.on("/api/system/restart", HTTP_POST, handleRestart);
-  server.on("/api/restart", HTTP_POST, handleRestart);  // Alias for frontend
+  server.on("/api/restart", HTTP_POST, handleRestart);
   
   // Language Management
   server.on("/api/languages", HTTP_GET, handleGetLanguages);
