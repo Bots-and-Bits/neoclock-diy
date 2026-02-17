@@ -68,14 +68,12 @@ void animationWiFiSearching() {
   if (now - lastUpdate > 50) {  // Update every 50ms
     lastUpdate = now;
     
-    // Blue comet chase
-    fadeToBlackBy(leds, LED_COUNT, 50);
+    // Simple blue breathing effect - faster pulse
+    uint8_t brightness = beatsin8(40, 30, 180);  // 40 BPM, range 30-180
     
-    uint8_t position = (now / 30) % LED_COUNT;
-    leds[position] = CRGB(0, 100, 255);
-    
-    if (position > 0) leds[position - 1] = CRGB(0, 50, 150);
-    if (position > 1) leds[position - 2] = CRGB(0, 20, 80);
+    for (int i = 0; i < LED_COUNT; i++) {
+      leds[i] = CRGB(0, brightness / 3, brightness);  // Blue with slight cyan
+    }
     
     FastLED.show();
   }
@@ -88,22 +86,16 @@ void animationWiFiConnecting() {
   static unsigned long lastUpdate = 0;
   unsigned long now = millis();
   
-  if (now - lastUpdate > 100) {
+  if (now - lastUpdate > 50) {
     lastUpdate = now;
     
-    // Cyan pulse from center outward
-    uint8_t brightness = beatSin(30, 50, 255);
+    // Cyan breathing effect - slower, calmer pulse
+    uint8_t brightness = beatsin8(25, 50, 200);  // 25 BPM, range 50-200
     
-    int center = LED_COUNT / 2;
-    int radius = (now / 100) % (LED_COUNT / 2);
-    
-    clearAllLEDs();
     for (int i = 0; i < LED_COUNT; i++) {
-      int distance = abs(i - center);
-      if (distance == radius) {
-        leds[i] = CRGB(0, brightness, brightness);
-      }
+      leds[i] = CRGB(0, brightness, brightness);  // Cyan
     }
+    
     FastLED.show();
   }
 }
@@ -126,30 +118,6 @@ void animationAPMode() {
         leds[i] = CRGB(brightness, brightness / 2, 0);
       } else {
         leds[i] = CRGB(brightness / 3, brightness / 6, 0);
-      }
-    }
-    FastLED.show();
-  }
-}
-
-// ============= NTP SYNCING ANIMATION (non-blocking) =============
-void animationNTPSyncing() {
-  Serial.println("💜 Animation: NTP Syncing");
-  
-  static unsigned long lastUpdate = 0;
-  unsigned long now = millis();
-  
-  if (now - lastUpdate > 80) {
-    lastUpdate = now;
-    
-    // Purple rotating spiral
-    fill_solid(leds, LED_COUNT, CRGB::Black);
-    
-    int position = (now / 80) % LED_COUNT;
-    for (int i = 0; i < LED_COUNT; i++) {
-      int offset = (i + position) % LED_COUNT;
-      if (offset < LED_COUNT / 4) {
-        leds[i] = CRGB(100, 0, 150);
       }
     }
     FastLED.show();
@@ -194,22 +162,6 @@ void animationError() {
     delay(100);
   }
   
-  FastLED.setBrightness(config.display.brightness);
-}
-
-// ============= SAVING ANIMATION =============
-void animationSaving() {
-  Serial.println("💾 Animation: Saving");
-  
-  // Blue progress bar
-  for (int i = 0; i < LED_COUNT; i++) {
-    leds[i] = CRGB(0, 100, 255);
-    FastLED.show();
-    delay(15);
-  }
-  
-  delay(200);
-  clearAllLEDs();
   FastLED.setBrightness(config.display.brightness);
 }
 
@@ -422,45 +374,6 @@ void animationWiFiConnected(IPAddress ip) {
   FastLED.setBrightness(config.display.brightness);
 }
 
-// Non-blocking rainbow visual mode (uses config.display.modeSpeed)
-void animationRainbowMode() {
-  static unsigned long lastDebug = 0;
-  unsigned long now = millis();
-  // Slower, smoother rainbow cycling
-  // Speed 0 = ~60 seconds per cycle, Speed 255 = ~3 seconds per cycle
-  unsigned long msPerStep = map(config.display.modeSpeed, 0, 255, 235, 12);
-
-  // Advance hue based on time and speed
-  uint8_t hueBase = (uint8_t)((now / msPerStep) & 0xFF);
-
-  // Use global brightness setting
-  FastLED.setBrightness(config.display.brightness);
-
-  // Debug output every 2 seconds
-  if (now - lastDebug > 2000) {
-    Serial.printf("[Rainbow] Speed:%d msPerStep:%lu hueBase:%d brightness:%d\n", 
-                  config.display.modeSpeed, msPerStep, hueBase, config.display.brightness);
-    lastDebug = now;
-  }
-
-  // Apply rainbow gradient based on LED position across entire panel,
-  // but only to LEDs that are currently lit (forming words)
-  int litCount = 0;
-  for (int i = 0; i < LED_COUNT; i++) {
-    if (leds[i].r > 0 || leds[i].g > 0 || leds[i].b > 0) {
-      // Calculate color based on position in full strip
-      leds[i] = CHSV(hueBase + (i * 256 / LED_COUNT), 255, 255);
-      litCount++;
-    }
-  }
-  
-  if (now - lastDebug > 2000 && now - lastDebug < 2100) {
-    Serial.printf("[Rainbow] Lit LEDs: %d/%d\n", litCount, LED_COUNT);
-  }
-  
-  FastLED.show();
-}
-
 // ============= MASTER ANIMATION CONTROLLER =============
 
 void playAnimation(AnimationState animation) {
@@ -483,11 +396,6 @@ void playAnimation(AnimationState animation) {
       currentAnimation = ANIM_NONE;
       break;
       
-    case ANIM_SAVING:
-      animationSaving();
-      currentAnimation = ANIM_NONE;
-      break;
-      
     case ANIM_FACTORY_RESET:
       animationFactoryReset();
       currentAnimation = ANIM_NONE;
@@ -497,7 +405,6 @@ void playAnimation(AnimationState animation) {
     case ANIM_WIFI_SEARCHING:
     case ANIM_WIFI_CONNECTING:
     case ANIM_AP_MODE:
-    case ANIM_NTP_SYNCING:
       // Will be updated in updateAnimation()
       break;
       
@@ -521,10 +428,6 @@ void updateAnimation() {
       animationAPMode();
       break;
       
-    case ANIM_NTP_SYNCING:
-      animationNTPSyncing();
-      break;
-      
     default:
       // No active animation
       break;
@@ -544,66 +447,4 @@ bool isAnimationPlaying() {
 void showWiFiConnected(IPAddress ip) {
   stopAnimation();
   animationWiFiConnected(ip);
-}
-
-// ============= ADDITIONAL DISPLAY MODES =============
-
-// Ambient Pulse: gentle breathing effect on the word clock
-void animationAmbientPulse(int hour, int minute) {
-  // Use a sine wave to create a gentle pulse
-  unsigned long now = millis();
-  float breath = (sin(now / 1000.0) + 1.0) / 2.0; // 0..1
-  
-  // Set word clock as normal
-  redval = config.display.colorR;
-  greenval = config.display.colorG;
-  blueval = config.display.colorB;
-  setMinutes(minute, hour);
-  
-  // Apply pulsing brightness
-  uint8_t minBright = map(config.display.modeIntensity, 0, 255, 10, 50);
-  uint8_t maxBright = config.display.brightness;
-  uint8_t pulseBright = minBright + (uint8_t)((maxBright - minBright) * breath);
-  
-  FastLED.setBrightness(pulseBright);
-  FastLED.show();
-}
-
-// Smooth Gradient: blend between primary and secondary color
-void animationSmoothGradient(int hour, int minute) {
-  unsigned long now = millis();
-  unsigned long msPerCycle = map(config.display.modeSpeed, 0, 255, 10000, 500); // slow to fast
-  
-  // Compute blend factor (0..1)
-  float blend = (sin((now % msPerCycle) * TWO_PI / msPerCycle) + 1.0) / 2.0;
-  
-  // Blend between color1 (config.display.color*) and color2 (config.display.color2*)
-  uint8_t r = config.display.colorR + (uint8_t)((config.display.color2R - config.display.colorR) * blend);
-  uint8_t g = config.display.colorG + (uint8_t)((config.display.color2G - config.display.colorG) * blend);
-  uint8_t b = config.display.colorB + (uint8_t)((config.display.color2B - config.display.colorB) * blend);
-  
-  redval = r;
-  greenval = g;
-  blueval = b;
-  setMinutes(minute, hour);
-  
-  FastLED.setBrightness(config.display.brightness);
-  FastLED.show();
-}
-
-// Fire Flicker: warm color with subtle random flicker effect
-void animationFireFlicker(int hour, int minute) {
-  // Set word clock as normal with warm colors
-  redval = config.display.colorR;
-  greenval = config.display.colorG;
-  blueval = config.display.colorB;
-  setMinutes(minute, hour);
-  
-  // Apply random flicker based on modeSpeed (higher speed = more flicker)
-  uint8_t flickerAmount = map(config.display.modeSpeed, 0, 255, 5, 40);
-  int8_t flicker = random(-flickerAmount, flickerAmount);
-  int brightAdjust = constrain(config.display.brightness + flicker, 10, 255);
-  
-  FastLED.setBrightness(brightAdjust);
-  FastLED.show();
 }

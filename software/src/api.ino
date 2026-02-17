@@ -616,9 +616,7 @@ void handleDisplayUpdate(AsyncWebServerRequest *request, uint8_t *data, size_t l
 // ============= TIME SYNC =============
 
 void handleSyncTime(AsyncWebServerRequest *request) {
-  playAnimation(ANIM_NTP_SYNCING);
   updatertc();  // Sync from NTP
-  stopAnimation();
   
   request->send(200, "application/json", "{\"success\":true}");
 }

@@ -249,20 +249,13 @@ void startAccessPoint() {
 void setupTime() {
   Serial.println("⏰ Setting up time with ezTime...");
   
-  // Wait for NTP sync with animation
-  playAnimation(ANIM_NTP_SYNCING);
-  
   // Non-blocking wait for sync (max 10 seconds)
   unsigned long syncStart = millis();
   while (timeStatus() == timeNotSet && millis() - syncStart < 10000) {
-    updateAnimation();  // Keep animation running
-    FastLED.show();
     events();  // ezTime event handler
     delay(50);
     esp_task_wdt_reset();
   }
-  
-  stopAnimation();
   
   Serial.println("✅ NTP synced!");
   Serial.printf("📅 UTC Time: %s\n", UTC.dateTime().c_str());

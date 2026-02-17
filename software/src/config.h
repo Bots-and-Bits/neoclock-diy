@@ -15,8 +15,7 @@ enum DisplayMode : uint8_t {
   DISPLAY_RAINBOW = 1,
   DISPLAY_DAY_CYCLE = 2,
   DISPLAY_AMBIENT_PULSE = 3,
-  DISPLAY_GRADIENT = 4,
-  DISPLAY_FIRE_FLICKER = 5
+  DISPLAY_GRADIENT = 4
 };
 
 struct DisplayConfig {
